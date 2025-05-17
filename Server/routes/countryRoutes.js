@@ -5,7 +5,9 @@ const countriesService = require('../services/countryService');
 const apiKeyMiddleware = require('../middleware/apiKeyMiddleware');
 
 // Countries endpoints (protected by API key)
-router.get('/', apiKeyMiddleware, async (req, res) => {
+router.use(apiKeyMiddleware);
+
+router.get('/', async (req, res) => {
     try {
         const result = await countriesService.getAllCountries();
         res.json(result);
@@ -15,7 +17,7 @@ router.get('/', apiKeyMiddleware, async (req, res) => {
     }
 });
 
-router.get('/:name', apiKeyMiddleware, async (req, res) => {
+router.get('/:name', async (req, res) => {
     try {
         const { name } = req.params;
         const result = await countriesService.getCountryByName(name);

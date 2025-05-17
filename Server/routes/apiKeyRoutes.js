@@ -4,11 +4,12 @@ const router = express.Router();
 const apiKeyService = require('../services/apiKeyService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
+
 router.use(authenticateJWT)
+//router.use(csrfProtection,)
 
 // Generate API key
-router.post('/generate', csrfProtection, async (req, res) => {
-    //const { id } = req.body;
+router.post('/generate', async (req, res) => {
     userId = req.user.id; 
     try {
         const result = await apiKeyService.generateApiKey(userId);
@@ -20,7 +21,7 @@ router.post('/generate', csrfProtection, async (req, res) => {
 });
 
 // Get all API keys
-router.get('/', csrfProtection, async (req, res) => {
+router.get('/', async (req, res) => {
     userId = req.user.id; 
     try {
         const keys = await apiKeyService.getApiKeys(userId);
@@ -32,7 +33,7 @@ router.get('/', csrfProtection, async (req, res) => {
 });
 
 // Delete an API key (using the key in the request body)
-router.delete('/delete', csrfProtection, async (req, res) => {
+router.delete('/delete', async (req, res) => {
     const { apiKey } = req.body; // API key passed in the request body
     if (!apiKey) {
         return res.status(400).json({ error: 'API key is required' });

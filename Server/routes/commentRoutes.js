@@ -7,7 +7,7 @@ const { csrfProtection } = require('../middleware/csrfMiddleware');
 
 // Apply JWT and CSRF protection
 router.use(authenticateJWT);
-router.use(csrfProtection);
+//router.use(csrfProtection);
 
 // Add a comment
 router.post('/add/:postId', async (req, res) => {
