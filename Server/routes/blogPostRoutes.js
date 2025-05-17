@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const blogPostService = require('../services/blogPostService');
+const followService = require('../services/followService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
 const upload = require('../utils/upload');  // Import multer configuration for file uploads
@@ -73,7 +74,7 @@ router.get('/popular', async (req, res) => {
 
 // Protected routes - Requires authentication
 router.use(authenticateJWT); // Ensure authentication for the following routes
-router.use(csrfProtection); // Ensure CSRF protection for the following routes
+//router.use(csrfProtection); // Ensure CSRF protection for the following routes
 
 // Get a specific blog post by ID with like, dislike, and comment counts
 router.get('/:postId', async (req, res) => {
@@ -154,6 +155,22 @@ router.delete('/delete/:postId', async (req, res) => {
     }
 });
 
+// Get blog posts from users the logged-in user is following (paginated and mixed order) to chack route
+router.get('/following/blogposts', async (req, res) => {
+    const userId = req.user.id; // Get the logged-in user's ID
+    const { page = 1, pageSize = 5 } = req.query;
 
+    try {
+        // Get users the logged-in user is following
+        const following = await followService.getFollowingForUser(userId);
+        const followingIds = following.map(followedUser => followedUser.following_id);
+
+        // Fetch blog posts from the followed users
+        const posts = await blogPostService.getBlogPostsByUserIds(followingIds, page, pageSize);
+        res.json(posts);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 module.exports = router;
