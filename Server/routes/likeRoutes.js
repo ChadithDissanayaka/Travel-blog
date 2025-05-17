@@ -1,4 +1,3 @@
-// routes/likeRoutes.js
 const express = require('express');
 const router = express.Router();
 const likeService = require('../services/likeService');
@@ -7,7 +6,7 @@ const { csrfProtection } = require('../middleware/csrfMiddleware');
 
 // Apply JWT and CSRF protection
 router.use(authenticateJWT);
-router.use(csrfProtection);
+//router.use(csrfProtection);
 
 // Like a post
 router.post('/like/:postId', async (req, res) => {
