@@ -1,27 +1,76 @@
-// dao/blogPostDAO.js
 const db = require('../config/databaseCon');
 const logger = require('../utils/logger');
 
 class BlogPostDAO {
+  // Utility function to get the counts for likes, dislikes, and comments for a post
+  async getPostCounts(postId) {
+    return new Promise((resolve, reject) => {
+      const likeCountQuery = `
+        SELECT 
+          COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
+          COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count
+        FROM likes
+        WHERE likes.post_id = ?
+      `;
+
+      const commentCountQuery = `
+        SELECT COALESCE(COUNT(comments.comment_id), 0) AS comment_count
+        FROM comments
+        WHERE comments.post_id = ?
+      `;
+
+      db.get(likeCountQuery, [postId], (err, likeRow) => {
+        if (err) {
+          logger.error(`Error fetching like counts: ${err.message}`);
+          reject(err);
+        } else {
+          db.get(commentCountQuery, [postId], (err, commentRow) => {
+            if (err) {
+              logger.error(`Error fetching comment count: ${err.message}`);
+              reject(err);
+            } else {
+              resolve({
+                like_count: likeRow.like_count,
+                dislike_count: likeRow.dislike_count,
+                comment_count: commentRow.comment_count
+              });
+            }
+          });
+        }
+      });
+    });
+  }
+
   // Fetch all blog posts with like, dislike, and comment counts
   async getAllBlogPosts() {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
+        SELECT blog_posts.*
         FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
-        GROUP BY blog_posts.post_id
       `;
+
       db.all(query, [], (err, rows) => {
         if (err) {
           logger.error(`Error fetching blog posts: ${err.message}`);
           reject(err);
         } else {
-          resolve(rows);  // Return an array of posts
+          // For each post, fetch the counts and attach them
+          const postsWithCounts = [];
+          let countPromises = [];
+
+          rows.forEach(row => {
+            countPromises.push(this.getPostCounts(row.post_id).then(counts => {
+              row.like_count = counts.like_count;
+              row.dislike_count = counts.dislike_count;
+              row.comment_count = counts.comment_count;
+              postsWithCounts.push(row);
+            }));
+          });
+
+          // Wait for all promises to resolve before sending the response
+          Promise.all(countPromises).then(() => {
+            resolve(postsWithCounts);
+          }).catch(error => reject(error));
         }
       });
     });
@@ -31,22 +80,25 @@ class BlogPostDAO {
   async getBlogPostById(postId) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
+        SELECT blog_posts.*
         FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
         WHERE blog_posts.post_id = ?
-        GROUP BY blog_posts.post_id
       `;
+
       db.get(query, [postId], (err, row) => {
         if (err) {
           logger.error(`Error fetching blog post by ID: ${err.message}`);
           reject(err);
+        } else if (row) {
+          // Fetch the like, dislike, and comment counts
+          this.getPostCounts(postId).then(counts => {
+            row.like_count = counts.like_count;
+            row.dislike_count = counts.dislike_count;
+            row.comment_count = counts.comment_count;
+            resolve(row);
+          }).catch(error => reject(error));
         } else {
-          resolve(row);
+          reject(new Error('Blog post not found'));
         }
       });
     });
@@ -56,22 +108,42 @@ class BlogPostDAO {
   async getBlogPostsByUserId(userId) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
+        SELECT blog_posts.*
         FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
         WHERE blog_posts.user_id = ?
-        GROUP BY blog_posts.post_id
       `;
+
       db.all(query, [userId], (err, rows) => {
         if (err) {
           logger.error(`Error fetching blog posts for user ${userId}: ${err.message}`);
           reject(err);
         } else {
-          resolve(rows);  // Return all blog posts for the user with counts
+          // For each post, fetch the counts and attach them
+          const postsWithCounts = [];
+          let countPromises = [];
+
+          rows.forEach(row => {
+            countPromises.push(this.getPostCounts(row.post_id).then(counts => {
+              row.like_count = counts.like_count;
+              row.dislike_count = counts.dislike_count;
+              row.comment_count = counts.comment_count;
+              postsWithCounts.push(row);
+            }));
+          });
+
+          // Wait for all promises to resolve before sorting and sending the response
+          Promise.all(countPromises).then(() => {
+            // Sort the posts by like_count and comment_count in descending order
+            postsWithCounts.sort((a, b) => {
+              // Sort first by like_count, then by comment_count
+              if (b.like_count !== a.like_count) {
+                return b.like_count - a.like_count;
+              }
+              return b.comment_count - a.comment_count;
+            });
+
+            resolve(postsWithCounts);
+          }).catch(error => reject(error));
         }
       });
     });
@@ -81,15 +153,9 @@ class BlogPostDAO {
   async searchBlogPosts(searchQuery, page, pageSize) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
+        SELECT blog_posts.*
         FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
         WHERE blog_posts.country_name LIKE ? OR blog_posts.title LIKE ?
-        GROUP BY blog_posts.post_id
         LIMIT ? OFFSET ?
       `;
       const searchTerm = `%${searchQuery}%`;
@@ -100,7 +166,23 @@ class BlogPostDAO {
           logger.error(`Error searching blog posts: ${err.message}`);
           reject(err);
         } else {
-          resolve(rows);  // Return filtered blog posts with counts
+          // For each post, fetch the counts and attach them
+          const postsWithCounts = [];
+          let countPromises = [];
+
+          rows.forEach(row => {
+            countPromises.push(this.getPostCounts(row.post_id).then(counts => {
+              row.like_count = counts.like_count;
+              row.dislike_count = counts.dislike_count;
+              row.comment_count = counts.comment_count;
+              postsWithCounts.push(row);
+            }));
+          });
+
+          // Wait for all promises to resolve before sending the response
+          Promise.all(countPromises).then(() => {
+            resolve(postsWithCounts);
+          }).catch(error => reject(error));
         }
       });
     });
@@ -110,24 +192,38 @@ class BlogPostDAO {
   async getMostCommentedBlogPosts(limit = 5) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
+        SELECT blog_posts.*
         FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
-        GROUP BY blog_posts.post_id
-        ORDER BY comment_count DESC
+        ORDER BY blog_posts.created_at DESC
         LIMIT ?
       `;
+
       db.all(query, [limit], (err, rows) => {
         if (err) {
           logger.error(`Error fetching most commented blog posts: ${err.message}`);
           reject(err);
         } else {
-          resolve(rows);  // Return the most commented blog posts with counts
+          // For each post, fetch the counts and attach them
+          const postsWithCounts = [];
+          let countPromises = [];
+
+          rows.forEach(row => {
+            countPromises.push(this.getPostCounts(row.post_id).then(counts => {
+              row.like_count = counts.like_count;
+              row.dislike_count = counts.dislike_count;
+              row.comment_count = counts.comment_count;
+              postsWithCounts.push(row);
+            }));
+          });
+
+          // Wait for all promises to resolve before sorting and sending the response
+          Promise.all(countPromises).then(() => {
+            // Sort the posts by comment_count in descending order
+            postsWithCounts.sort((a, b) => b.comment_count - a.comment_count);
+            resolve(postsWithCounts);
+          }).catch(error => reject(error));
         }
+
       });
     });
   }
@@ -136,49 +232,35 @@ class BlogPostDAO {
   async getRecentBlogPosts(limit = 5) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
+        SELECT blog_posts.*
         FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
-        GROUP BY blog_posts.post_id
+        WHERE blog_posts.created_at <= datetime('now')
         ORDER BY blog_posts.created_at DESC
         LIMIT ?
       `;
+
       db.all(query, [limit], (err, rows) => {
         if (err) {
           logger.error(`Error fetching recent blog posts: ${err.message}`);
           reject(err);
         } else {
-          resolve(rows);  // Return the most recent blog posts with counts
-        }
-      });
-    });
-  }
+          // For each post, fetch the counts and attach them
+          const postsWithCounts = [];
+          let countPromises = [];
 
-  // Fetch popular blog posts (based on likes or comments) with like, dislike, and comment counts
-  async getPopularBlogPosts(limit = 5) {
-    return new Promise((resolve, reject) => {
-      const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(DISTINCT comments.comment_id), 0) AS comment_count
-        FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
-        GROUP BY blog_posts.post_id
-        ORDER BY like_count DESC, comment_count DESC
-        LIMIT ?
-      `;
-      db.all(query, [limit], (err, rows) => {
-        if (err) {
-          logger.error(`Error fetching popular blog posts: ${err.message}`);
-          reject(err);
-        } else {
-          resolve(rows);  // Return the popular blog posts with counts
+          rows.forEach(row => {
+            countPromises.push(this.getPostCounts(row.post_id).then(counts => {
+              row.like_count = counts.like_count;
+              row.dislike_count = counts.dislike_count;
+              row.comment_count = counts.comment_count;
+              postsWithCounts.push(row);
+            }));
+          });
+
+          // Wait for all promises to resolve before sending the response
+          Promise.all(countPromises).then(() => {
+            resolve(postsWithCounts);
+          }).catch(error => reject(error));
         }
       });
     });
@@ -236,30 +318,94 @@ class BlogPostDAO {
     });
   }
 
-  // Get blog posts from users the logged-in user is following (paginated and mixed order)
-  async getBlogPostsByUserIds(userIds, page = 1, pageSize = 5) {
+  // Fetch popular blog posts (based on likes or comments) with like, dislike, and comment counts
+  async getPopularBlogPosts(limit = 5) {
     return new Promise((resolve, reject) => {
       const query = `
-        SELECT blog_posts.*, 
-               COALESCE(SUM(CASE WHEN likes.is_like = 1 THEN 1 ELSE 0 END), 0) AS like_count,
-               COALESCE(SUM(CASE WHEN likes.is_like = 0 THEN 1 ELSE 0 END), 0) AS dislike_count,
-               COALESCE(COUNT(comments.id), 0) AS comment_count
-        FROM blog_posts
-        LEFT JOIN likes ON blog_posts.post_id = likes.post_id
-        LEFT JOIN comments ON blog_posts.post_id = comments.post_id
-        WHERE blog_posts.user_id IN (${userIds.join(',')})
-        GROUP BY blog_posts.post_id
-        ORDER BY blog_posts.created_at DESC
-        LIMIT ? OFFSET ?
-      `;
-      const offset = (page - 1) * pageSize;
+      SELECT blog_posts.*
+      FROM blog_posts
+      ORDER BY blog_posts.created_at DESC
+      LIMIT ?
+    `;
 
-      db.all(query, [pageSize, offset], (err, rows) => {
+      db.all(query, [limit], async (err, rows) => {
         if (err) {
-          logger.error(`Error fetching blog posts by followed users: ${err.message}`);
+          logger.error(`Error fetching popular blog posts: ${err.message}`);
           reject(err);
         } else {
-          resolve(rows);  // Return blog posts from the followed users
+          // For each post, fetch the counts (like, dislike, comment counts)
+          const postsWithCounts = [];
+          let countPromises = [];
+
+          for (let row of rows) {
+            countPromises.push(
+              this.getPostCounts(row.post_id).then(counts => {
+                row.like_count = counts.like_count;
+                row.dislike_count = counts.dislike_count;
+                row.comment_count = counts.comment_count;
+                postsWithCounts.push(row);
+              })
+            );
+          }
+
+          // Wait for all promises to resolve before sending the response
+          try {
+            await Promise.all(countPromises);
+            // Sort the posts based on like_count and comment_count in descending order
+            postsWithCounts.sort((a, b) => {
+              if (b.like_count !== a.like_count) {
+                return b.like_count - a.like_count;
+              }
+              return b.comment_count - a.comment_count;
+            });
+            resolve(postsWithCounts);
+          } catch (error) {
+            reject(error);
+          }
+        }
+      });
+    });
+  }
+
+  // Fetch blog posts by user IDs (from the users the logged-in user is following)
+  async getBlogPostsByUserIds(userIds, page = 1, pageSize = 5) {
+    return new Promise((resolve, reject) => {
+      const offset = (page - 1) * pageSize;
+      const query = `
+      SELECT blog_posts.*
+      FROM blog_posts
+      WHERE blog_posts.user_id IN (${userIds.join(',')})  -- Filter by the followed users
+      ORDER BY blog_posts.created_at DESC
+      LIMIT ? OFFSET ?  -- Pagination
+    `;
+
+      db.all(query, [pageSize, offset], async (err, rows) => {
+        if (err) {
+          logger.error(`Error fetching blog posts by user IDs: ${err.message}`);
+          reject(err);
+        } else {
+          // For each post, fetch the counts (like, dislike, comment counts)
+          const postsWithCounts = [];
+          let countPromises = [];
+
+          rows.forEach(row => {
+            countPromises.push(
+              this.getPostCounts(row.post_id).then(counts => {
+                row.like_count = counts.like_count;
+                row.dislike_count = counts.dislike_count;
+                row.comment_count = counts.comment_count;
+                postsWithCounts.push(row);
+              })
+            );
+          });
+
+          // Wait for all promises to resolve before returning the response
+          try {
+            await Promise.all(countPromises);
+            resolve(postsWithCounts); // Return the posts with counts
+          } catch (error) {
+            reject(error);
+          }
         }
       });
     });
