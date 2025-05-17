@@ -6,9 +6,12 @@ const morgan = require("morgan");
 const logger = require("./utils/logger"); 
 
 const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const countriesRoutes = require('./routes/countryRoutes');
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
+const countryRoutes = require('./routes/countryRoutes');
+const blogPostRoutes = require('./routes/blogPostRoutes');
+const userRoutes = require('./routes/userRoutes');
+const likeRoutes = require('./routes/likeRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 
 
 const port = process.env.PORT || 3000;
@@ -27,9 +30,12 @@ app.use(morgan("combined", {
 
 // Use routes
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
-app.use('/api/countries', countriesRoutes);
 app.use('/api/apikeys', apiKeyRoutes);
+app.use('/api/countries', countryRoutes);
+app.use('/api/blogposts', blogPostRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/likes', likeRoutes);
+app.use('/api/comments', commentRoutes);
 
 // Global Error Handling Middleware
 app.use((err, req, res, next) => {
