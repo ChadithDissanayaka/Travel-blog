@@ -3,16 +3,16 @@ const express = require('express');
 const router = express.Router();
 const userService = require('../services/userService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
-const upload = require('../utils/upload');  // Import multer configuration for file uploads
+const { upload, uploadToCloudinary } = require('../utils/upload');
 
 // Protected route - Requires authentication
 router.use(authenticateJWT);
 
 // Edit user profile (Allow updating username, address, description, and profile picture)
-router.put('/profile/edit', upload.single('profile_picture'), async (req, res) => {
+router.put('/profile/edit', upload, uploadToCloudinary, async (req, res) => {
   const { username, address, description } = req.body;
   const userId = req.user.id; // Get the logged-in user's ID
-  const profilePicture = req.file ? req.file.path : null; // Image path (optional)
+  const profilePicture = req.fileUrl || null; // If a new image was uploaded, get the Cloudinary URL
 
   // Validate input fields
   if (!username) {
@@ -20,8 +20,14 @@ router.put('/profile/edit', upload.single('profile_picture'), async (req, res) =
   }
 
   try {
-    const result = await userService.updateUserProfile(userId, username, address, description, profilePicture);
-    res.json(result);
+    // Fetch the existing user profile from the database before updating
+    const currentProfile = await userService.getUserProfile(userId);
+
+    // If no new profile picture, keep the existing one
+    const updatedProfilePicture = profilePicture || currentProfile.profile_picture;
+
+    const result = await userService.updateUserProfile(userId, username, address, description, updatedProfilePicture);
+    res.json(result); // Return the result
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

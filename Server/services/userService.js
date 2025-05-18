@@ -16,7 +16,7 @@ class UserService {
           logger.error(`Error updating user profile: ${err.message}`);
           reject(err);
         } else {
-          resolve({ message: 'User profile updated successfully' });
+          resolve({ message: 'User profile updated successfully', username, address, description, profilePicture, userId});
         }
       });
     });
