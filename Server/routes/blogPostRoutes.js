@@ -5,7 +5,7 @@ const blogPostService = require('../services/blogPostService');
 const followService = require('../services/followService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
-const upload = require('../utils/upload');  // Import multer configuration for file uploads
+const { upload, uploadToCloudinary } = require('../utils/upload');
 
 // Public routes - No authentication required
 
@@ -107,10 +107,10 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 // Create a new blog post (Allow image upload for the blog post)
-router.post('/create', upload.single('image'), async (req, res) => {
+router.post('/create', upload, uploadToCloudinary, async (req, res) => {
     const { title, content, countryName, dateOfVisit } = req.body;
     const userId = req.user.id;
-    const image = req.file ? req.file.path : null; // Image path (optional)
+    const image = req.fileUrl || null; // Cloudinary image URL
 
     // Validate input fields
     if (!title || !content || !countryName || !dateOfVisit) {
@@ -126,10 +126,12 @@ router.post('/create', upload.single('image'), async (req, res) => {
 });
 
 // Update a blog post (Allow image upload for the blog post)
-router.put('/update/:postId', upload.single('image'), async (req, res) => {
+router.put('/update/:postId', upload, uploadToCloudinary, async (req, res) => {
     const { postId } = req.params;
     const { title, content, countryName, dateOfVisit } = req.body;
-    const image = req.file ? req.file.path : null; // Image path (optional)
+
+    // If an image was uploaded, use the Cloudinary URL, otherwise, retain the existing image
+    const image = req.fileUrl || null; // If an image was uploaded, get the Cloudinary URL
 
     // Validate input fields
     if (!title || !content || !countryName || !dateOfVisit) {
@@ -137,7 +139,14 @@ router.put('/update/:postId', upload.single('image'), async (req, res) => {
     }
 
     try {
-        const result = await blogPostService.updateBlogPost(postId, title, content, countryName, dateOfVisit, image);
+        // Fetch the current blog post from the database to retain the existing image if no new image is uploaded
+        const currentPost = await blogPostService.getBlogPostById(postId);
+
+        // If no new image is uploaded, retain the existing image URL
+        const updatedImage = image || currentPost.image;
+
+        // Call the service to update the blog post
+        const result = await blogPostService.updateBlogPost(postId, title, content, countryName, dateOfVisit, updatedImage);
         res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });

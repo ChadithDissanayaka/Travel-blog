@@ -124,30 +124,31 @@ class BlogPostService {
   // Create a new blog post (with an optional image)
   async createBlogPost(userId, title, content, countryName, dateOfVisit, image) {
     try {
-        // Insert blog post into the database
-        const result = await blogPostDAO.createBlogPost(userId, title, content, countryName, dateOfVisit, image);
-        const postId = result.postId;
+      // Insert blog post into the database
+      const result = await blogPostDAO.createBlogPost(userId, title, content, countryName, dateOfVisit, image);
+      const postId = result.postId;
 
-        // Fetch the full details of the created post
-        const post = await blogPostDAO.getBlogPostById(postId);
+      // Fetch the full details of the created post
+      const post = await blogPostDAO.getBlogPostById(postId);
 
-        // Log the successful creation of the blog post
-        logger.info(`Blog post created by user ${userId}`);
+      // Log the successful creation of the blog post
+      logger.info(`Blog post created by user ${userId}`);
 
-        // Return the full post details
-        return post;
+      // Return the full post details
+      return post;
     } catch (error) {
-        logger.error(`Error creating blog post: ${error.message}`);
-        throw new Error(`Error creating blog post: ${error.message}`);
+      logger.error(`Error creating blog post: ${error.message}`);
+      throw new Error(`Error creating blog post: ${error.message}`);
     }
-}
+  }
 
   // Update an existing blog post (with an optional image)
   async updateBlogPost(postId, title, content, countryName, dateOfVisit, image) {
     try {
+      // Update the blog post in the database
       const result = await blogPostDAO.updateBlogPost(postId, title, content, countryName, dateOfVisit, image);
       logger.info(`Blog post updated with ID: ${postId}`);
-      return result;
+      return { message: 'Blog post updated successfully', postId, title, content, countryName, dateOfVisit, image };
     } catch (error) {
       logger.error(`Error updating blog post: ${error.message}`);
       throw new Error(`Error updating blog post: ${error.message}`);

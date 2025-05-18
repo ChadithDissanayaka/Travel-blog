@@ -297,7 +297,7 @@ class BlogPostDAO {
           logger.error(`Error updating blog post: ${err.message}`);
           reject(err);
         } else {
-          resolve({ message: 'Blog post updated successfully' });
+          resolve({ message: 'Blog post updated successfully', postId, title, content, countryName, dateOfVisit, image });
         }
       });
     });
