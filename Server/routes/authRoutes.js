@@ -32,7 +32,7 @@ router.post('/login', async (req, res) => {
     res.cookie('csrf-token', result.csrfToken, { httpOnly: false, sameSite: 'strict', secure: true });
 
     logger.info(`User logged in: ${username}`); // Log successful login
-    res.json({ message: 'Login successful', user: result.user, csrfToken: result.csrfToken });
+    res.json({ message: 'Login successful', user: result.user, csrfToken: result.csrfToken, apiKey: result.apiKey  });
   } catch (error) {
     logger.error(`Login failed for ${username}: ${error.message}`); // Log error
     res.status(500).json({ error: error.message });

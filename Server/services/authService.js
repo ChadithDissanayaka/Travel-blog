@@ -1,6 +1,7 @@
 // services/authService.js
 const bcrypt = require('bcrypt');
 const authDAO = require('../dao/authDAO');
+const apiKeyService = require('../services/apiKeyService');
 const { generateTokens } = require('../config/jwt');
 const logger = require('../utils/logger'); // Import the logger
 
@@ -17,11 +18,15 @@ class AuthService {
       // Generate both access token (JWT) and CSRF token
       const { accessToken, csrfToken } = generateTokens(user);
 
+      // Generate an API key for the user
+      const apiKey = await apiKeyService.generateApiKey(userId);
+
+
       // Remove sensitive data (password) from the user object before returning it
       delete user.password;
 
       logger.info(`User registered with ID: ${user.id}`); // Log user registration
-      return { accessToken, csrfToken, user };
+      return { accessToken, csrfToken, apiKey, user };
     } catch (error) {
       logger.error(`Error during registration: ${error.message}`); // Log error
       throw new Error(`Registration error: ${error.message}`);
@@ -45,11 +50,15 @@ class AuthService {
       // Generate tokens
       const { accessToken, csrfToken } = generateTokens(user);
 
+      // GetA an API keys for the logged-in user
+      const apiKey = await apiKeyService.getApiKeys(user.id)
+      console.log(apiKey);
+
       // Remove sensitive data
       delete user.password;
 
       logger.info(`User logged in: ${username}`); // Log successful login
-      return { accessToken, csrfToken, user };
+      return { accessToken, csrfToken, apiKey, user };
     } catch (error) {
       logger.error(`Error during login: ${error.message}`); // Log error
       throw new Error(`Login error: ${error.message}`);
