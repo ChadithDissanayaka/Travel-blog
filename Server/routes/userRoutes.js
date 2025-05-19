@@ -4,9 +4,11 @@ const router = express.Router();
 const userService = require('../services/userService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { upload, uploadToCloudinary } = require('../utils/upload');
+const { csrfProtection } = require('../middleware/csrfMiddleware');
 
-// Protected route - Requires authentication
+// Protected routes
 router.use(authenticateJWT);
+router.use(csrfProtection);
 
 // Edit user profile (Allow updating username, address, description, and profile picture)
 router.put('/profile/edit', upload, uploadToCloudinary, async (req, res) => {
@@ -27,7 +29,7 @@ router.put('/profile/edit', upload, uploadToCloudinary, async (req, res) => {
     const updatedProfilePicture = profilePicture || currentProfile.profile_picture;
 
     const result = await userService.updateUserProfile(userId, username, address, description, updatedProfilePicture);
-    res.json(result); // Return the result
+    res.json(result); 
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -6,7 +6,7 @@ const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
 
 router.use(authenticateJWT)
-//router.use(csrfProtection,)
+router.use(csrfProtection,)
 
 // Generate API key
 router.post('/generate', async (req, res) => {

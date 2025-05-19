@@ -1,4 +1,3 @@
-// routes/blogPostRoutes.js
 const express = require('express');
 const router = express.Router();
 const blogPostService = require('../services/blogPostService');
@@ -7,7 +6,7 @@ const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
 const { upload, uploadToCloudinary } = require('../utils/upload');
 
-// Public routes - No authentication required
+// Public routes 
 
 // Get all blog posts with like, dislike, and comment counts
 router.get('/', async (req, res) => {
@@ -72,9 +71,9 @@ router.get('/popular', async (req, res) => {
     }
 });
 
-// Protected routes - Requires authentication
-router.use(authenticateJWT); // Ensure authentication for the following routes
-//router.use(csrfProtection); // Ensure CSRF protection for the following routes
+// Protected routes
+router.use(authenticateJWT); 
+router.use(csrfProtection); 
 
 // Get a specific blog post by ID with like, dislike, and comment counts
 router.get('/:postId', async (req, res) => {
@@ -91,8 +90,8 @@ router.get('/:postId', async (req, res) => {
 });
 
 // Get all blog posts for a specific user by user ID
-router.get('/user/:userId', async (req, res) => {
-    const { userId } = req.params;  // Get the user ID from the URL parameter
+router.get('/user', async (req, res) => {
+    const { userId } = req.user.id;  // Get the log in user user ID
     try {
         // Make sure the logged-in user is trying to access their own posts
         if (req.user.id !== parseInt(userId)) {
@@ -125,7 +124,7 @@ router.post('/create', upload, uploadToCloudinary, async (req, res) => {
     }
 });
 
-// Update a blog post (Allow image upload for the blog post)
+// Update a blog post 
 router.put('/update/:postId', upload, uploadToCloudinary, async (req, res) => {
     const { postId } = req.params;
     const { title, content, countryName, dateOfVisit } = req.body;

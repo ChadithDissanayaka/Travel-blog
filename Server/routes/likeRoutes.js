@@ -6,7 +6,7 @@ const { csrfProtection } = require('../middleware/csrfMiddleware');
 
 // Apply JWT and CSRF protection
 router.use(authenticateJWT);
-//router.use(csrfProtection);
+router.use(csrfProtection);
 
 // Like a post
 router.post('/like/:postId', async (req, res) => {
