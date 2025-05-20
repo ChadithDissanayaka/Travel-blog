@@ -90,14 +90,9 @@ router.get('/:postId', async (req, res) => {
 });
 
 // Get all blog posts for a specific user by user ID
-router.get('/user', async (req, res) => {
-    const { userId } = req.user.id;  // Get the log in user user ID
-    try {
-        // Make sure the logged-in user is trying to access their own posts
-        if (req.user.id !== parseInt(userId)) {
-            return res.status(403).json({ error: 'You can only view your own blog posts.' });
-        }
-
+router.get('/user/:userId', async (req, res) => {
+    const { userId } = req.params;  // Get the user ID from the URL parameter
+    try { 
         const posts = await blogPostService.getBlogPostsByUserId(userId);
         res.json(posts);
     } catch (error) {
