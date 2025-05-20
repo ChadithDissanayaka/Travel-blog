@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply text-gray-800;
+  }
+}
+
+@layer components {
+  .nav-link {
+    @apply text-slate-700 hover:text-teal-600 transition-colors;
+  }
+  
+  .mobile-nav-link {
+    @apply block py-2 text-slate-700 hover:text-teal-600 transition-colors;
+  }
+}
