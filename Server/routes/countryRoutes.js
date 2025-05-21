@@ -1,4 +1,3 @@
-// routes/countryRoutes.js
 const express = require('express');
 const router = express.Router();
 const countriesService = require('../services/countryService');

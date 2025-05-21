@@ -1,4 +1,3 @@
-// routes/commentRoutes.js
 const express = require('express');
 const router = express.Router();
 const commentService = require('../services/commentService');
@@ -14,8 +13,8 @@ router.post('/add/:postId', async (req, res) => {
     const { postId } = req.params;
     const { commentText } = req.body;
     try {
-        await commentService.addComment(req.user.id, postId, commentText);
-        res.json({ message: 'Comment added' });
+        const comment = await commentService.addComment(req.user.id, postId, commentText);
+        res.json({ message: 'Comment added', comment });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

@@ -1,28 +1,25 @@
-// routes/userRoutes.js
 const express = require('express');
 const router = express.Router();
 const userService = require('../services/userService');
-const { authenticateJWT } = require('../middleware/authMiddleware');
 const { upload, uploadToCloudinary } = require('../utils/upload');
+const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
 
-// Protected routes
+// Apply JWT and CSRF protection
 router.use(authenticateJWT);
 router.use(csrfProtection);
 
 // Edit user profile (Allow updating username, address, description, and profile picture)
 router.put('/profile/edit', upload, uploadToCloudinary, async (req, res) => {
   const { username, address, description } = req.body;
-  const userId = req.user.id; // Get the logged-in user's ID
+  const userId = req.user.id; 
   const profilePicture = req.fileUrl || null; // If a new image was uploaded, get the Cloudinary URL
 
-  // Validate input fields
   if (!username) {
     return res.status(400).json({ error: 'Username is required.' });
   }
 
   try {
-    // Fetch the existing user profile from the database before updating
     const currentProfile = await userService.getUserProfile(userId);
 
     // If no new profile picture, keep the existing one
@@ -47,7 +44,7 @@ router.get('/profile', async (req, res) => {
   }
 });
 
-// routes/userRoutes.js
+// Get users Id and names
 router.get('/all', async (req, res) => {
   try {
     const users = await userService.getAllUsers();
