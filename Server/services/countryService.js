@@ -6,7 +6,7 @@ class CountryService {
   // Get all country data
   async getAllCountries() {
     try {
-      const url = "https://restcountries.com/v3.1/all?fields=name,currencies,capital,languages,flags";
+      const url = "https://restcountries.com/v3.1/all?fields=name,currencies,capital,flags";
       const response = await axios.get(url);
       logger.info("Fetched all country data.");
       return response.data;
@@ -19,7 +19,7 @@ class CountryService {
   // Get country data by country name
   async getCountryByName(name) {
     try {
-      const url = `https://restcountries.com/v3.1/name/${name}?fields=name,currencies,capital,languages,flags`;
+      const url = `https://restcountries.com/v3.1/name/${name}?fields=name,currencies,capital,flags`;
       const response = await axios.get(url);
       logger.info(`Fetched data for country: ${name}`);
       return response.data;
