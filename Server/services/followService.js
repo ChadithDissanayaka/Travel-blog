@@ -1,4 +1,3 @@
-// services/followService.js
 const followerDAO = require('../dao/followerDAO');
 const logger = require('../utils/logger');
 
@@ -50,6 +49,27 @@ class FollowService {
       throw new Error(`Error unfollowing user: ${error.message}`);
     }
   }
+
+  // Get users that the logged-in user is not following
+  async getUnfollowingUsers(userId) {
+    try {
+      const allUsers = await followerDAO.getAllUsers();
+
+      const followingUsers = await followerDAO.getFollowingForUser(userId);
+
+      // Extract the IDs of the users the logged-in user is following
+      const followingIds = new Set(followingUsers.map(user => user.following_id));
+
+      // Filter out users that the logged-in user is following
+      const unfollowingUsers = allUsers.filter(user => !followingIds.has(user.id) && user.id !== userId);
+
+      return unfollowingUsers;
+    } catch (error) {
+      throw new Error(`Error in getUnfollowingUsers: ${error.message}`);
+    }
+  }
+
+
 }
 
 module.exports = new FollowService();
