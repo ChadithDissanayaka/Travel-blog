@@ -8,13 +8,13 @@ class CommentDAO {
         return new Promise((resolve, reject) => {
             const query = 'INSERT INTO comments (user_id, post_id, comment_text) VALUES (?, ?, ?)';
             
-            db.run(query, [userId, postId, commentText], function (err) {
+            db.run(query, [userId, postId, commentText], function (err ,rows) {
                 if (err) {
                     logger.error(`Error adding comment: ${err.message}`);
                     reject(err);
                 } else {
                     logger.info(`Comment added to post ${postId}`);
-                    resolve({ commentId: this.lastID });
+                    resolve(rows);
                 }
             });
         });
@@ -30,7 +30,7 @@ class CommentDAO {
                     logger.error(`Error fetching comments for post ${postId}: ${err.message}`);
                     reject(err);
                 } else {
-                    resolve(rows); // Return all comments for the post
+                    resolve(rows); 
                 }
             });
         });
