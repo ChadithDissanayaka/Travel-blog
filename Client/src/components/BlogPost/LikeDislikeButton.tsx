@@ -34,10 +34,13 @@ const LikeDislikeButton = ({
         // User is unliking
         setLikeCount(likeCount - 1);
         setLiked(false);
-        
+
         // Decrease like count via API
         await axios.post(`http://localhost:3000/api/likes/dislike/${postId}`, {}, {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          },  // Ensure cookies are sent
         });
       } else {
         // User is liking
@@ -48,16 +51,22 @@ const LikeDislikeButton = ({
         if (disliked) {
           setDislikeCount(dislikeCount - 1);
           setDisliked(false);
-          
+
           // Decrease dislike count via API
           await axios.post(`http://localhost:3000/api/likes/like/${postId}`, {}, {
-            withCredentials: true, // Ensure cookies are sent
+            withCredentials: true,
+            headers: {
+              'x-csrf-token': localStorage.getItem('csrfToken'),
+            },  // Ensure cookies are sent
           });
         }
-        
+
         // Increase like count via API
         await axios.post(`http://localhost:3000/api/likes/like/${postId}`, {}, {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          },  // Ensure cookies are sent
         });
       }
     } catch (error) {
@@ -77,10 +86,13 @@ const LikeDislikeButton = ({
         // User is removing dislike
         setDislikeCount(dislikeCount - 1);
         setDisliked(false);
-        
+
         // Decrease dislike count via API
         await axios.post(`http://localhost:3000/api/likes/like/${postId}`, {}, {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          },  // Ensure cookies are sent
         });
       } else {
         // User is disliking
@@ -91,16 +103,22 @@ const LikeDislikeButton = ({
         if (liked) {
           setLikeCount(likeCount - 1);
           setLiked(false);
-          
+
           // Decrease like count via API
           await axios.post(`http://localhost:3000/api/likes/dislike/${postId}`, {}, {
-            withCredentials: true, // Ensure cookies are sent
+            withCredentials: true,
+            headers: {
+              'x-csrf-token': localStorage.getItem('csrfToken'),
+            },
           });
         }
 
         // Increase dislike count via API
         await axios.post(`http://localhost:3000/api/likes/dislike/${postId}`, {}, {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          },
         });
       }
     } catch (error) {
@@ -121,7 +139,7 @@ const LikeDislikeButton = ({
         <ThumbsUp className="h-5 w-5" />
         <span>{likeCount}</span>
       </button>
-      
+
       <button
         onClick={handleDislike}
         className={`

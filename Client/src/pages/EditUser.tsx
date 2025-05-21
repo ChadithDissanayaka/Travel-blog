@@ -34,9 +34,10 @@ const EditUser = () => {
         formData,
         {
           headers: {
-            'Content-Type': 'multipart/form-data', // Ensures the request handles file upload
+            'Content-Type': 'multipart/form-data',
+            'x-csrf-token': localStorage.getItem('csrfToken'), // Get CSRF token from localStorage
           },
-          withCredentials: true // Ensure cookies are sent if needed for authentication
+          withCredentials: true, // Ensure cookies are sent
         }
       );
 
@@ -59,7 +60,6 @@ const EditUser = () => {
         localStorage.setItem('user', JSON.stringify(updatedUserData));
 
         // Optional: Log the updated user object to the console for verification
-        console.log(updatedUserData);
         // Redirect to the blog page or wherever appropriate after success
         navigate(`/profile/${username}`); // Replace with the actual username or profile page
       }

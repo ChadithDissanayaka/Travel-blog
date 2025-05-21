@@ -48,7 +48,6 @@ const Home = () => {
         }
 
         setPosts(filteredPosts);
-        console.log(posts);
       } catch (error) {
         console.error('Error fetching posts:', error);
       } finally {

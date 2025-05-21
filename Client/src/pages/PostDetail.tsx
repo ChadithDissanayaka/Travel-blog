@@ -38,7 +38,6 @@ const PostDetail = () => {
   // Log the post data after it is fetched and the state is updated
   useEffect(() => {
     if (post) {
-      console.log(post);  // This will now log after the post state is updated
       if (!post) {
         navigate('/404');
       }
@@ -49,7 +48,10 @@ const PostDetail = () => {
     try {
       // Make the DELETE request to delete the post
       const response = await axios.delete(`http://localhost:3000/api/blogposts/delete/${id}`, {
-        withCredentials: true, // Ensure cookies are sent
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }  
       });
 
       if (response.status === 200) {
@@ -187,7 +189,7 @@ const PostDetail = () => {
           </div>
         </div>
         {/* Comments */}
-        <CommentSection postId={post.post_id} comments={post.comments} /> 
+        <CommentSection postId={post.post_id} comments={post.comments} />
       </div>
 
       {/* Delete confirmation modal */}

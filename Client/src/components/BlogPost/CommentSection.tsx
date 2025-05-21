@@ -29,13 +29,10 @@ const CommentSection = ({ postId, comments: initialComments }: CommentSectionPro
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        console.log(postId);
-        console.log(comments);
         const response = await axios.get(`http://localhost:3000/api/comments/${postId}`, {
           withCredentials: true, // Ensure cookies are sent
         });
-        setComments(response.data);
-        console.log(response.data);
+        setComments(response.data);;
       } catch (error) {
         console.error('Error fetching comments:', error);
       }
@@ -56,10 +53,18 @@ const CommentSection = ({ postId, comments: initialComments }: CommentSectionPro
       await axios.post(
         `http://localhost:3000/api/comments/add/${postId}`,
         { commentText: newComment },
-        { withCredentials: true } // Ensure cookies are sent
+        {
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          },
+        } // Ensure cookies are sent
       );
       const getcomments = await axios.get(`http://localhost:3000/api/comments/${postId}`, {
-        withCredentials: true, // Ensure cookies are sent
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }, // Ensure cookies are sent
       });
       setComments(getcomments.data);
 

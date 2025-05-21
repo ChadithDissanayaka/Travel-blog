@@ -23,7 +23,10 @@ const EditPost = () => {
       try {
         setLoading(true);
         const response = await axios.get(`http://localhost:3000/api/blogposts/${id}`, {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          } 
         });
 
         const postData = response.data;
@@ -55,7 +58,6 @@ const EditPost = () => {
     formData.append('content', content);
     formData.append('countryName', countryName);
     formData.append('dateOfVisit', dateOfVisit);
-    console.log(image);
     if (image) {
       formData.append('image', image);
     }
@@ -63,14 +65,14 @@ const EditPost = () => {
     try {
       const response = await axios.put(`http://localhost:3000/api/blogposts/update/${id}`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data', // To handle file uploads
+          'Content-Type': 'multipart/form-data',
+          'x-csrf-token': localStorage.getItem('csrfToken'), 
         },
-        withCredentials: true, // Ensure cookies are sent
+        withCredentials: true,
       });
 
       // Redirect to the post detail page or blog page after the edit
       navigate(`/post/${id}`);
-      console.log('Post updated successfully:', response.data);
     } catch (error) {
       console.error('Error updating post:', error);
     } finally {

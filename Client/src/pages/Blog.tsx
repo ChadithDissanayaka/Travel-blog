@@ -20,7 +20,10 @@ const Blog = () => {
 
         // Make the API call to fetch blog posts for the user
         const response = await axios.get(`http://localhost:3000/api/blogposts/user/${user.id}`, {
-          withCredentials: true, // Ensure cookies are sent
+          withCredentials: true,
+          headers: {
+            'x-csrf-token': localStorage.getItem('csrfToken'),
+          }, // Ensure cookies are sent
         });
 
         // Set the fetched posts in the state

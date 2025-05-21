@@ -19,7 +19,10 @@ const Profile = () => {
 
       // Make the API call to fetch blog posts for the people the user follows
       const response = await axios.get('http://localhost:3000/api/blogposts/following/blogposts', {
-        withCredentials: true, // Ensure cookies are sent
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }  // Ensure cookies are sent
       });
 
       // Set the fetched posts in the state

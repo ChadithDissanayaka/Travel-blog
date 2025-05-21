@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { useState } from 'react';
 import axios from 'axios';
 
-const ProfileHeader = ({}) => {
+const ProfileHeader = ({ }) => {
   const { user } = useAuth(); // Get the logged-in user from useAuth
 
   // If no user is found, you can return null or a loading spinner, etc.
@@ -14,7 +14,7 @@ const ProfileHeader = ({}) => {
     return <div>Loading...</div>;
   }
 
-  const { username, profile_picture, description, address, created_at, followers, following , } = user;
+  const { username, profile_picture, description, address, created_at, followers, following, } = user;
 
   // State to handle popup visibility and followers/following/unfollowing data
   const [isFollowersPopupOpen, setIsFollowersPopupOpen] = useState(false);
@@ -28,7 +28,10 @@ const ProfileHeader = ({}) => {
   const fetchFollowers = async () => {
     try {
       const response = await axios.get('http://localhost:3000/api/follow/followers', {
-        withCredentials: true, // Include cookies with the request
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }, // Include cookies with the request
       });
       setFollowerList(response.data);
       setIsFollowersPopupOpen(true);
@@ -41,7 +44,10 @@ const ProfileHeader = ({}) => {
   const fetchFollowing = async () => {
     try {
       const response = await axios.get('http://localhost:3000/api/follow/following', {
-        withCredentials: true, // Include cookies with the request
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }, // Include cookies with the request
       });
       setFollowingList(response.data);
       setIsFollowingPopupOpen(true);
@@ -54,7 +60,10 @@ const ProfileHeader = ({}) => {
   const fetchUnfollowing = async () => {
     try {
       const response = await axios.get('http://localhost:3000/api/follow/unfollowing-users', {
-        withCredentials: true, // Include cookies with the request
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }, // Include cookies with the request
       });
       setUnfollowingList(response.data);
       setIsUnfollowingPopupOpen(true);
@@ -67,10 +76,13 @@ const ProfileHeader = ({}) => {
   const unfollowUser = async (userId) => {
     try {
       await axios.post(`http://localhost:3000/api/follow/unfollow/${userId}`, {}, {
-        withCredentials: true, // Include cookies with the request
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }, // Include cookies with the request
       });
       setIsFollowingPopupOpen(false);
-      
+
     } catch (error) {
       console.error("Error unfollowing user:", error);
     }
@@ -80,7 +92,10 @@ const ProfileHeader = ({}) => {
   const followUser = async (userId) => {
     try {
       await axios.post(`http://localhost:3000/api/follow/follow/${userId}`, {}, {
-        withCredentials: true, // Include cookies with the request
+        withCredentials: true,
+        headers: {
+          'x-csrf-token': localStorage.getItem('csrfToken'),
+        }, // Include cookies with the request
       });
       setIsUnfollowingPopupOpen(false);
     } catch (error) {

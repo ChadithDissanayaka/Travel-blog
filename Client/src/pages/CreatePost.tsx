@@ -6,6 +6,7 @@ import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
 import CountryDropdown from '../components/Common/CountryDropdown';
 import { useAuth } from '../hooks/useAuth';
+import axios from 'axios'; 
 
 interface CreatePostFormData {
   title: string;
@@ -39,20 +40,25 @@ const CreatePost = () => {
       formData.append('content', data.content);
       formData.append('countryName', country);
       formData.append('dateOfVisit', data.visitDate);
-      console.log(data.image[0]);
       if (data.image) {
         formData.append('image', data.image[0]);
       }
 
       // Make the API call to create the post
-      const response = await fetch(`http://localhost:3000/api/blogposts/create`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include', // Ensure cookies are sent
-      });
+      const response = await axios.post(
+        'http://localhost:3000/api/blogposts/create',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'x-csrf-token': localStorage.getItem('csrfToken'), // Get CSRF token from localStorage
+          },
+          withCredentials: true, // Ensure cookies are sent
+        }
+      );
 
       // Handle the response
-      if (!response.ok) {
+      if (!response) {
         throw new Error('Failed to create post');
       }
 
