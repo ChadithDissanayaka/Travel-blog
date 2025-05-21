@@ -318,15 +318,15 @@ class BlogPostDAO {
     });
   }
 
-  // Fetch popular blog posts (based on likes or comments) with like, dislike, and comment counts
+  // Fetch popular blog posts on likes counts
   async getPopularBlogPosts(limit = 5) {
     return new Promise((resolve, reject) => {
       const query = `
-      SELECT blog_posts.*
-      FROM blog_posts
-      ORDER BY blog_posts.created_at DESC
-      LIMIT ?
-    `;
+    SELECT blog_posts.*
+    FROM blog_posts
+    ORDER BY blog_posts.created_at DESC
+    LIMIT ?
+  `;
 
       db.all(query, [limit], async (err, rows) => {
         if (err) {
@@ -347,17 +347,9 @@ class BlogPostDAO {
               })
             );
           }
-
-          // Wait for all promises to resolve before sending the response
           try {
             await Promise.all(countPromises);
-            // Sort the posts based on like_count and comment_count in descending order
-            postsWithCounts.sort((a, b) => {
-              if (b.like_count !== a.like_count) {
-                return b.like_count - a.like_count;
-              }
-              return b.comment_count - a.comment_count;
-            });
+            postsWithCounts.sort((a, b) => b.like_count - a.like_count);
             resolve(postsWithCounts);
           } catch (error) {
             reject(error);
@@ -399,7 +391,6 @@ class BlogPostDAO {
             );
           });
 
-          // Wait for all promises to resolve before returning the response
           try {
             await Promise.all(countPromises);
             resolve(postsWithCounts); // Return the posts with counts
