@@ -6,7 +6,7 @@ class ApiKeyDAO {
     // Create a new API key
     async createApiKey(userId) {
         return new Promise((resolve, reject) => {
-            const apiKey = require('crypto').randomBytes(32).toString('hex'); // Generate a secure random API key
+            const apiKey = require('crypto').randomBytes(32).toString('hex');
             const query = 'INSERT INTO api_keys (key, user_id) VALUES (?, ?)';
 
             db.run(query, [apiKey, userId], function (err) {
@@ -52,7 +52,7 @@ class ApiKeyDAO {
                         resolve(row);
                     } else {
                         logger.warn(`API key ${apiKey} not found`);
-                        resolve(null); // No API key found
+                        resolve(null); 
                     }
                 }
             });
