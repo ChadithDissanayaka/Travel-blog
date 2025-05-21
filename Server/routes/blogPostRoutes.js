@@ -6,7 +6,7 @@ const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
 const { upload, uploadToCloudinary } = require('../utils/upload');
 
-// Public routes 
+// Public routes - No authentication required
 
 // Get all blog posts with like, dislike, and comment counts
 router.get('/', async (req, res) => {
@@ -37,7 +37,7 @@ router.get('/search', async (req, res) => {
 
 // Get the most commented blog posts (with like, dislike, and comment counts)
 router.get('/mostCommented', async (req, res) => {
-    const { limit = 5 } = req.query; // Limit for the number of posts to return
+    const { limit = 6 } = req.query; // Limit for the number of posts to return
 
     try {
         const posts = await blogPostService.getMostCommentedBlogPosts(limit);
@@ -49,7 +49,7 @@ router.get('/mostCommented', async (req, res) => {
 
 // Get recent blog posts (with like, dislike, and comment counts)
 router.get('/recent', async (req, res) => {
-    const { limit = 5 } = req.query; // Limit for the number of posts to return
+    const { limit = 6 } = req.query; // Limit for the number of posts to return
 
     try {
         const posts = await blogPostService.getRecentBlogPosts(limit);
@@ -61,7 +61,7 @@ router.get('/recent', async (req, res) => {
 
 // Get the most popular blog posts (based on likes or comments)
 router.get('/popular', async (req, res) => {
-    const { limit = 5 } = req.query; // Limit for the number of posts to return
+    const { limit = 6 } = req.query; // Limit for the number of posts to return
 
     try {
         const posts = await blogPostService.getPopularBlogPosts(limit);
@@ -71,7 +71,7 @@ router.get('/popular', async (req, res) => {
     }
 });
 
-// Protected routes
+// Protected routes - Requires authentication
 router.use(authenticateJWT); 
 router.use(csrfProtection); 
 
@@ -92,7 +92,7 @@ router.get('/:postId', async (req, res) => {
 // Get all blog posts for a specific user by user ID
 router.get('/user/:userId', async (req, res) => {
     const { userId } = req.params;  // Get the user ID from the URL parameter
-    try { 
+    try {
         const posts = await blogPostService.getBlogPostsByUserId(userId);
         res.json(posts);
     } catch (error) {
@@ -119,7 +119,7 @@ router.post('/create', upload, uploadToCloudinary, async (req, res) => {
     }
 });
 
-// Update a blog post 
+// Update a blog post (Allow image upload for the blog post)
 router.put('/update/:postId', upload, uploadToCloudinary, async (req, res) => {
     const { postId } = req.params;
     const { title, content, countryName, dateOfVisit } = req.body;
