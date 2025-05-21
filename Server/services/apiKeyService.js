@@ -1,4 +1,4 @@
-const apiKeyDAO = require('../dao/apiKeyDAO');
+const apiKeyDAO = require('../dao/apikeyDAO');
 const authDAO = require('../dao/authDAO');
 const logger = require('../utils/logger');
 

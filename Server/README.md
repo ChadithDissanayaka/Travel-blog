@@ -65,8 +65,8 @@ This is a secure Apilication built with Node.js, Express, and SQLite3. It integr
    CSRF_SECRET=your_csrf_secret
    DATABASE_PATH=path_to_your_database
 
-4. bulid docker image (optional) - docker build -t travel-blog . 
+4. bulid docker image (optional) - docker build -t travel-blog-server . 
 
-5. run docker container port 3000 (optional) - docker run -p 3000:3000 travel-blog 
+5. run docker container port 3000 (optional) - docker run -p 3000:3000 travel-blog-server 
 
 6. run server in locally use - npm strart
