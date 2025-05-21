@@ -71,10 +71,6 @@ router.get('/popular', async (req, res) => {
     }
 });
 
-// Protected routes - Requires authentication
-router.use(authenticateJWT); 
-router.use(csrfProtection); 
-
 // Get a specific blog post by ID with like, dislike, and comment counts
 router.get('/:postId', async (req, res) => {
     const { postId } = req.params;
@@ -88,6 +84,10 @@ router.get('/:postId', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+// Protected routes - Requires authentication
+router.use(authenticateJWT); 
+router.use(csrfProtection); 
 
 // Get all blog posts for a specific user by user ID
 router.get('/user/:userId', async (req, res) => {

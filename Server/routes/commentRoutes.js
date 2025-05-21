@@ -4,6 +4,18 @@ const commentService = require('../services/commentService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
 const { csrfProtection } = require('../middleware/csrfMiddleware');
 
+
+// Get comments for a post
+router.get('/:postId', async (req, res) => {
+    const { postId } = req.params;
+    try {
+        const comments = await commentService.getCommentsForPost(postId);
+        res.json(comments);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Apply JWT and CSRF protection
 router.use(authenticateJWT);
 router.use(csrfProtection);
@@ -20,15 +32,5 @@ router.post('/add/:postId', async (req, res) => {
     }
 });
 
-// Get comments for a post
-router.get('/:postId', async (req, res) => {
-    const { postId } = req.params;
-    try {
-        const comments = await commentService.getCommentsForPost(postId);
-        res.json(comments);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
 
 module.exports = router;
