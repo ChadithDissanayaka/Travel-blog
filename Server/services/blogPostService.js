@@ -1,17 +1,17 @@
-// services/blogPostService.js
 const blogPostDAO = require('../dao/blogPostDAO');
 const authDAO = require('../dao/authDAO');
 const logger = require('../utils/logger');
-
+const commentService = require('./commentService');
 class BlogPostService {
   // Fetch all blog posts with like, dislike, and comment counts
   async getAllBlogPosts() {
     try {
       const posts = await blogPostDAO.getAllBlogPosts();
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info('Fetched all blog posts.');
       return posts;
@@ -25,9 +25,13 @@ class BlogPostService {
   async getBlogPostById(postId) {
     try {
       const post = await blogPostDAO.getBlogPostById(postId);
+      const comments = await commentService.getCommentsForPost(postId);
+      // Add author and profile_picture information to the posts
       if (post) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
+        post.comments = comments;
       }
       return post;
     } catch (error) {
@@ -40,10 +44,11 @@ class BlogPostService {
   async getBlogPostsByUserId(userId) {
     try {
       const posts = await blogPostDAO.getBlogPostsByUserId(userId);
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info(`Fetched blog posts for user with ID: ${userId}`);
       return posts;
@@ -57,10 +62,11 @@ class BlogPostService {
   async searchBlogPosts(searchQuery, page = 1, pageSize = 10) {
     try {
       const posts = await blogPostDAO.searchBlogPosts(searchQuery, page, pageSize);
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info(`Fetched blog posts matching search query: ${searchQuery}`);
       return posts;
@@ -74,10 +80,11 @@ class BlogPostService {
   async getMostCommentedBlogPosts(limit = 5) {
     try {
       const posts = await blogPostDAO.getMostCommentedBlogPosts(limit);
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info(`Fetched ${limit} most commented blog posts.`);
       return posts;
@@ -91,10 +98,11 @@ class BlogPostService {
   async getRecentBlogPosts(limit = 5) {
     try {
       const posts = await blogPostDAO.getRecentBlogPosts(limit);
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info(`Fetched ${limit} recent blog posts.`);
       return posts;
@@ -108,10 +116,11 @@ class BlogPostService {
   async getPopularBlogPosts(limit = 5) {
     try {
       const posts = await blogPostDAO.getPopularBlogPosts(limit);
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info(`Fetched ${limit} popular blog posts.`);
       return posts;
@@ -124,17 +133,16 @@ class BlogPostService {
   // Create a new blog post (with an optional image)
   async createBlogPost(userId, title, content, countryName, dateOfVisit, image) {
     try {
-      // Insert blog post into the database
       const result = await blogPostDAO.createBlogPost(userId, title, content, countryName, dateOfVisit, image);
       const postId = result.postId;
 
-      // Fetch the full details of the created post
+      // Add author and profile_picture information to the posts
       const post = await blogPostDAO.getBlogPostById(postId);
+      const user = await authDAO.findUserById(userId);
+      post.author = user.username;
+      post.profile_picture = user.profile_picture;
 
-      // Log the successful creation of the blog post
       logger.info(`Blog post created by user ${userId}`);
-
-      // Return the full post details
       return post;
     } catch (error) {
       logger.error(`Error creating blog post: ${error.message}`);
@@ -145,7 +153,6 @@ class BlogPostService {
   // Update an existing blog post (with an optional image)
   async updateBlogPost(postId, title, content, countryName, dateOfVisit, image) {
     try {
-      // Update the blog post in the database
       const result = await blogPostDAO.updateBlogPost(postId, title, content, countryName, dateOfVisit, image);
       logger.info(`Blog post updated with ID: ${postId}`);
       return { message: 'Blog post updated successfully', postId, title, content, countryName, dateOfVisit, image };
@@ -171,10 +178,11 @@ class BlogPostService {
   async getBlogPostsByUserIds(userIds, page = 1, pageSize = 5) {
     try {
       const posts = await blogPostDAO.getBlogPostsByUserIds(userIds, page, pageSize);
-      // Add author information to the posts
+      // Add author and profile_picture information to the posts
       for (let post of posts) {
         const user = await authDAO.findUserById(post.user_id);
         post.author = user.username;
+        post.profile_picture = user.profile_picture;
       }
       logger.info(`Fetched blog posts from followed users with IDs: ${userIds}`);
       return posts;

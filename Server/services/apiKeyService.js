@@ -1,4 +1,3 @@
-// services/apiKeyService.js
 const apiKeyDAO = require('../dao/apiKeyDAO');
 const authDAO = require('../dao/authDAO');
 const logger = require('../utils/logger');
@@ -41,12 +40,11 @@ class ApiKeyService {
     async validateApiKey(apiKey) {
         try {
             logger.info(`Validating API key: ${apiKey}`);
-            // Use the DAO to validate the API key
             const validKey = await apiKeyDAO.getApiKeyByKey(apiKey);
 
             if (!validKey) {
                 logger.warn(`API key ${apiKey} is invalid or not found`);
-                return null; // Invalid API key
+                return null; y
             }
             
             logger.info(`API key ${apiKey} is valid.`);
