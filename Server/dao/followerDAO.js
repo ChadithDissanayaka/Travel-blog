@@ -72,6 +72,59 @@ class FollowerDAO {
             });
         });
     }
+
+    // Get count of all followers for a user
+    async getFollowersCountForUser(userId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+        SELECT COUNT(*) AS followers_count
+        FROM followers
+        WHERE following_id = ?
+      `;
+            db.get(query, [userId], (err, row) => {
+                if (err) {
+                    logger.error(`Error fetching followers count for user ${userId}: ${err.message}`);
+                    reject(err);
+                } else {
+                    resolve(row.followers_count); // Return the count of followers
+                }
+            });
+        });
+    }
+
+    // Get count of all users the login user is following
+    async getFollowingCountForUser(userId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+        SELECT COUNT(*) AS following_count
+        FROM followers
+        WHERE follower_id = ?
+      `;
+            db.get(query, [userId], (err, row) => {
+                if (err) {
+                    logger.error(`Error fetching following count for user ${userId}: ${err.message}`);
+                    reject(err);
+                } else {
+                    resolve(row.following_count); // Return the count of followed users
+                }
+            });
+        });
+    }
+
+    // Get all users in the system
+    async getAllUsers() {
+        return new Promise((resolve, reject) => {
+            const query = 'SELECT id, username FROM users';
+            db.all(query, [], (err, rows) => {
+                if (err) {
+                    logger.error(`Error fetching users: ${err.message}`);
+                    reject(err);
+                } else {
+                    resolve(rows); // Return all users with id and username
+                }
+            });
+        });
+    }
 }
 
 module.exports = new FollowerDAO();
