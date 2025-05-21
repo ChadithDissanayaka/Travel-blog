@@ -1,7 +1,6 @@
-// utils/upload.js
 const multer = require('multer');
-const cloudinary = require('../config/cloudinaryConfig');  // Import Cloudinary config
-const path = require('path');  // Import path module
+const cloudinary = require('../config/cloudinaryConfig');  
+const path = require('path');  
 
 // Multer configuration (no need to define storage since we're uploading directly to Cloudinary)
 const upload = multer({
@@ -59,4 +58,4 @@ const uploadToCloudinary = (req, res, next) => {
   
 };
 
-module.exports = { upload, uploadToCloudinary };  // Export both multer and Cloudinary upload middleware
+module.exports = { upload, uploadToCloudinary }; 
