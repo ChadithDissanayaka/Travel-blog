@@ -1,4 +1,3 @@
-// middleware/apiKeyMiddleware.js
 const apiKeyService = require('../services/apiKeyService');
 const logger = require('../utils/logger');
 
