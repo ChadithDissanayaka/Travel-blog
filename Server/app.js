@@ -1,10 +1,11 @@
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config();
 //require("./db/init"); // Initialize the database tables
 const express = require('express');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const logger = require('./utils/logger');
+const cors = require('cors');
 
 // Import Routes
 const authRoutes = require('./routes/authRoutes');
@@ -22,6 +23,10 @@ const app = express();
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors({
+  origin: 'http://localhost:5173', // your React app's URL
+  credentials: true // Allow cookies to be sent
+}));
 
 // Logging
 app.use(morgan('combined', { stream: { write: message => logger.info(message.trim()) } }));
