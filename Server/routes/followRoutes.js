@@ -1,11 +1,12 @@
-// routes/followRoutes.js
 const express = require('express');
 const router = express.Router();
 const followService = require('../services/followService');
 const { authenticateJWT } = require('../middleware/authMiddleware');
+const { csrfProtection } = require('../middleware/csrfMiddleware');
 
-// Apply JWT authentication
+// Apply JWT and Csrf protection
 router.use(authenticateJWT);
+router.use(csrfProtection);
 
 // Follow a user
 router.post('/follow/:followingId', async (req, res) => {
@@ -51,11 +52,23 @@ router.get('/followers', async (req, res) => {
 
 // Get all users the logged-in user is following
 router.get('/following', async (req, res) => {
-  const userId = req.user.id; // Get the logged-in user's ID
+  const userId = req.user.id; 
 
   try {
     const following = await followService.getFollowingForUser(userId);
     res.json(following);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get unfollowing users for the logged-in user
+router.get('/unfollowing-users', async (req, res) => {
+  const userId = req.user.id; 
+
+  try {
+    const unfollowingUsers = await followService.getUnfollowingUsers(userId);
+    res.json(unfollowingUsers); // Return the unfollowing users list
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
