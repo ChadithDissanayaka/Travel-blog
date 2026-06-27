@@ -1,258 +1,225 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Calendar, Users } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth';
+import { MapPin, Calendar, Users, UserPlus, UserMinus, UserSearch, X, Edit2 } from 'lucide-react';
 import Button from '../Common/Button';
 import { format } from 'date-fns';
 import { useState } from 'react';
-import axios from 'axios';
+import { followService } from '../../services/follow.service';
+import { ProfileUser } from '../../types/user';
 
-const ProfileHeader = ({ }) => {
-  const { user } = useAuth(); // Get the logged-in user from useAuth
+interface ProfileHeaderProps {
+  profileUser: ProfileUser;
+  isLoggedInUser: boolean;
+  isFollowing: boolean;
+  onRefresh: () => void;
+}
+interface FollowerItem { follower_id: number; username: string; }
+interface FollowingItem { following_id: number; username: string; }
+interface UnfollowingItem { id: number; username: string; }
 
-  // If no user is found, you can return null or a loading spinner, etc.
-  if (!user) {
-    return <div>Loading...</div>;
-  }
+const Modal = ({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) => (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center z-50 p-4">
+    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm max-h-[80vh] flex flex-col">
+      <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+        <h3 className="font-display text-lg font-bold text-slate-800">{title}</h3>
+        <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+          <X className="h-4 w-4 text-slate-500" />
+        </button>
+      </div>
+      <div className="overflow-y-auto flex-grow px-6 py-4">{children}</div>
+    </div>
+  </div>
+);
 
-  const { username, profile_picture, description, address, created_at, followers, following, } = user;
-
-  // State to handle popup visibility and followers/following/unfollowing data
+const ProfileHeader = ({ profileUser, isLoggedInUser, isFollowing, onRefresh }: ProfileHeaderProps) => {
   const [isFollowersPopupOpen, setIsFollowersPopupOpen] = useState(false);
   const [isFollowingPopupOpen, setIsFollowingPopupOpen] = useState(false);
   const [isUnfollowingPopupOpen, setIsUnfollowingPopupOpen] = useState(false);
-  const [followerList, setFollowerList] = useState([]);
-  const [followingList, setFollowingList] = useState([]);
-  const [unfollowingList, setUnfollowingList] = useState([]);
+  const [followerList, setFollowerList] = useState<FollowerItem[]>([]);
+  const [followingList, setFollowingList] = useState<FollowingItem[]>([]);
+  const [unfollowingList, setUnfollowingList] = useState<UnfollowingItem[]>([]);
 
-  // Fetch followers list
   const fetchFollowers = async () => {
-    try {
-      const response = await axios.get('http://localhost:3000/api/follow/followers', {
-        withCredentials: true,
-        headers: {
-          'x-csrf-token': localStorage.getItem('csrfToken'),
-        }, // Include cookies with the request
-      });
-      setFollowerList(response.data);
-      setIsFollowersPopupOpen(true);
-    } catch (error) {
-      console.error("Error fetching followers:", error);
-    }
+    try { const data = await followService.getFollowers(); setFollowerList(data); setIsFollowersPopupOpen(true); }
+    catch (e) { console.error(e); }
   };
-
-  // Fetch following list
   const fetchFollowing = async () => {
-    try {
-      const response = await axios.get('http://localhost:3000/api/follow/following', {
-        withCredentials: true,
-        headers: {
-          'x-csrf-token': localStorage.getItem('csrfToken'),
-        }, // Include cookies with the request
-      });
-      setFollowingList(response.data);
-      setIsFollowingPopupOpen(true);
-    } catch (error) {
-      console.error("Error fetching following:", error);
-    }
+    try { const data = await followService.getFollowing(); setFollowingList(data); setIsFollowingPopupOpen(true); }
+    catch (e) { console.error(e); }
   };
-
-  // Fetch unfollowing users list
   const fetchUnfollowing = async () => {
+    try { const data = await followService.getUnfollowing(); setUnfollowingList(data); setIsUnfollowingPopupOpen(true); }
+    catch (e) { console.error(e); }
+  };
+  const handleUnfollowUser = async (userId: number) => {
     try {
-      const response = await axios.get('http://localhost:3000/api/follow/unfollowing-users', {
-        withCredentials: true,
-        headers: {
-          'x-csrf-token': localStorage.getItem('csrfToken'),
-        }, // Include cookies with the request
-      });
-      setUnfollowingList(response.data);
-      setIsUnfollowingPopupOpen(true);
-    } catch (error) {
-      console.error("Error fetching unfollowing users:", error);
-    }
+      await followService.unfollow(userId);
+      const data = await followService.getFollowing(); setFollowingList(data);
+      onRefresh();
+    } catch (e) { console.error(e); }
+  };
+  const handleFollowUser = async (userId: number) => {
+    try {
+      await followService.follow(userId);
+      const data = await followService.getUnfollowing(); setUnfollowingList(data);
+      onRefresh();
+    } catch (e) { console.error(e); }
+  };
+  const handleMainFollowToggle = async () => {
+    try {
+      if (isFollowing) await followService.unfollow(profileUser.id);
+      else await followService.follow(profileUser.id);
+      onRefresh();
+    } catch (e) { console.error(e); }
   };
 
-  // Unfollow user
-  const unfollowUser = async (userId) => {
-    try {
-      await axios.post(`http://localhost:3000/api/follow/unfollow/${userId}`, {}, {
-        withCredentials: true,
-        headers: {
-          'x-csrf-token': localStorage.getItem('csrfToken'),
-        }, // Include cookies with the request
-      });
-      setIsFollowingPopupOpen(false);
-
-    } catch (error) {
-      console.error("Error unfollowing user:", error);
-    }
-  };
-
-  // Follow user (same as unfollow but calling the API to follow the user)
-  const followUser = async (userId) => {
-    try {
-      await axios.post(`http://localhost:3000/api/follow/follow/${userId}`, {}, {
-        withCredentials: true,
-        headers: {
-          'x-csrf-token': localStorage.getItem('csrfToken'),
-        }, // Include cookies with the request
-      });
-      setIsUnfollowingPopupOpen(false);
-    } catch (error) {
-      console.error("Error following user:", error);
-    }
-  };
+  const { username, description, address } = profileUser;
+  const profile_picture = profileUser.profilePicture || `https://ui-avatars.com/api/?name=${username}&background=0d9488&color=fff&size=128`;
+  const created_at = profileUser.createdAt;
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden mb-6">
-      <div className="h-32 bg-gradient-to-r from-blue-500 to-teal-500"></div>
-
-      <div className="px-6 pb-6">
-        <div className="flex flex-col md:flex-row md:items-end -mt-16 mb-6">
-          <img
-            src={profile_picture}
-            alt={username}
-            className="h-32 w-32 rounded-full border-4 border-white object-cover"
-          />
-
-          <div className="mt-4 md:mt-0 md:ml-6 flex-grow">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <h1 className="text-2xl font-bold">{username}</h1>
-
-              <div className="mt-2 md:mt-0">
-                <Link to="/edit-user">
-                  <Button className="bg-light-blue-500 hover:bg-light-blue-600">
-                    Edit User
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {address && (
-              <div className="flex items-center mt-1 text-gray-600">
-                <MapPin className="h-4 w-4 mr-1" />
-                <span>{address}</span>
-              </div>
-            )}
-
-            <div className="flex items-center mt-1 text-gray-600">
-              <Calendar className="h-4 w-4 mr-1" />
-              <span>Joined {format(new Date(created_at), 'MMM d, yyyy')}</span>
-            </div>
-          </div>
+    <>
+      <div className="bg-white rounded-3xl shadow-card overflow-hidden mb-8">
+        {/* Banner */}
+        <div className="h-36 bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 relative">
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, white 0%, transparent 50%), radial-gradient(circle at 80% 20%, white 0%, transparent 50%)' }} />
         </div>
 
-        {description && (
-          <p className="text-gray-700 mb-4">{description}</p>
-        )}
+        <div className="px-6 pb-7">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-14 mb-5">
+            <div className="relative shrink-0">
+              <img
+                src={profile_picture}
+                alt={username}
+                className="w-28 h-28 rounded-2xl border-4 border-white object-cover shadow-md"
+              />
+            </div>
 
-        <div className="flex items-center space-x-6">
-          <button
-            onClick={fetchFollowers} // Fetch followers when the button is clicked
-            className="flex items-center hover:text-teal-600 transition-colors"
-          >
-            <Users className="h-4 w-4 mr-1" />
-            {/* <span className="font-semibold">{followers}</span> */}
-            <span className="ml-1 text-gray-600">Followers</span>
-          </button>
+            <div className="flex-grow pb-1">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <h1 className="font-display text-2xl font-bold text-slate-900">{username}</h1>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                    {address && (
+                      <span className="flex items-center gap-1 text-sm text-slate-500">
+                        <MapPin className="h-3.5 w-3.5" /> {address}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1 text-sm text-slate-400">
+                      <Calendar className="h-3.5 w-3.5" /> Joined {format(new Date(created_at), 'MMM yyyy')}
+                    </span>
+                  </div>
+                </div>
+                {isLoggedInUser ? (
+                  <Link to="/edit-user">
+                    <Button variant="outline" size="sm">
+                      <Edit2 className="h-3.5 w-3.5" /> Edit Profile
+                    </Button>
+                  </Link>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={isFollowing ? 'ghost' : 'primary'}
+                    onClick={handleMainFollowToggle}
+                  >
+                    {isFollowing
+                      ? <><UserMinus className="h-4 w-4" /> Unfollow</>
+                      : <><UserPlus className="h-4 w-4" /> Follow</>
+                    }
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
 
-          <button
-            onClick={fetchFollowing} // Fetch following when the button is clicked
-            className="flex items-center hover:text-teal-600 transition-colors"
-          >
-            <Users className="h-4 w-4 mr-1" />
-            {/* <span className="font-semibold">{following}</span> */}
-            <span className="ml-1 text-gray-600">Following</span>
-          </button>
+          {description && (
+            <p className="text-sm text-slate-600 leading-relaxed mb-5 max-w-prose">{description}</p>
+          )}
 
-          <button
-            onClick={fetchUnfollowing} // Fetch unfollowing when the button is clicked
-            className="flex items-center hover:text-teal-600 transition-colors"
-          >
-            <Users className="h-4 w-4 mr-1" />
-            <span className="ml-1 text-gray-600">Unfollowing</span>
-          </button>
+          {/* Stats row */}
+          <div className="flex items-center gap-6">
+            <button onClick={fetchFollowers} className="flex items-center gap-1.5 text-sm group">
+              <span className="font-bold text-slate-800 group-hover:text-teal-600 transition-colors">{profileUser.followers}</span>
+              <span className="text-slate-400 group-hover:text-teal-500 transition-colors">Followers</span>
+            </button>
+            <button onClick={fetchFollowing} className="flex items-center gap-1.5 text-sm group">
+              <span className="font-bold text-slate-800 group-hover:text-teal-600 transition-colors">{profileUser.following}</span>
+              <span className="text-slate-400 group-hover:text-teal-500 transition-colors">Following</span>
+            </button>
+            {isLoggedInUser && (
+              <button onClick={fetchUnfollowing} className="flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-800 transition-colors font-medium">
+                <UserSearch className="h-4 w-4" /> Find travelers
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Popup for Followers List */}
+      {/* Followers Modal */}
       {isFollowersPopupOpen && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-md w-80">
-            <h3 className="text-xl font-semibold mb-4">Followers</h3>
-            <div className="space-y-4">
-              {followerList.map(follower => (
-                <div key={follower.follower_id} className="flex items-center">
-                  <span className="ml-3 font-medium">{follower.username}</span>
+        <Modal title={`Followers (${followerList.length})`} onClose={() => setIsFollowersPopupOpen(false)}>
+          {followerList.length > 0 ? (
+            <div className="space-y-3">
+              {followerList.map(f => (
+                <div key={f.follower_id} className="flex items-center gap-3 py-1">
+                  <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-semibold text-sm">
+                    {f.username[0]?.toUpperCase()}
+                  </div>
+                  <span className="font-medium text-sm text-slate-700">{f.username}</span>
                 </div>
               ))}
             </div>
-            <Button
-              onClick={() => setIsFollowersPopupOpen(false)}
-              className="bg-light-blue-500 hover:bg-light-blue-600 mt-4"
-            >
-              Close
-            </Button>
-          </div>
-        </div>
+          ) : <p className="text-sm text-slate-400 py-4 text-center">No followers yet.</p>}
+        </Modal>
       )}
 
-      {/* Popup for Following List */}
+      {/* Following Modal */}
       {isFollowingPopupOpen && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-md w-80">
-            <h3 className="text-xl font-semibold mb-4">Following</h3>
-            <div className="space-y-4">
-              {followingList.map(following => (
-                <div key={following.following_id} className="flex items-center justify-between">
-                  <span className="ml-3 font-medium">{following.username}</span>
-                  <button
-                    onClick={() => unfollowUser(following.following_id)} // Unfollow when button is clicked
-                    className="px-4 py-1 rounded-full text-sm font-medium bg-teal-600 text-white hover:bg-teal-700"
-                  >
-                    Unfollow
-                  </button>
+        <Modal title={`Following (${followingList.length})`} onClose={() => setIsFollowingPopupOpen(false)}>
+          {followingList.length > 0 ? (
+            <div className="space-y-3">
+              {followingList.map(f => (
+                <div key={f.following_id} className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-semibold text-sm">
+                      {f.username[0]?.toUpperCase()}
+                    </div>
+                    <span className="font-medium text-sm text-slate-700">{f.username}</span>
+                  </div>
+                  {isLoggedInUser && (
+                    <button onClick={() => handleUnfollowUser(f.following_id)} className="text-xs font-semibold text-rose-500 hover:text-rose-700 transition-colors px-2 py-1 rounded-lg hover:bg-rose-50">
+                      Unfollow
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
-            <Button
-              onClick={() => setIsFollowingPopupOpen(false)}
-              className="bg-light-blue-500 hover:bg-light-blue-600 mt-4"
-            >
-              Close
-            </Button>
-          </div>
-        </div>
+          ) : <p className="text-sm text-slate-400 py-4 text-center">Not following anyone yet.</p>}
+        </Modal>
       )}
 
-      {/* Popup for Unfollowing List */}
+      {/* Discover Modal */}
       {isUnfollowingPopupOpen && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-md w-80">
-            <h3 className="text-xl font-semibold mb-4">Unfollowing</h3>
-            <div className="space-y-4">
-              {unfollowingList.map(user => (
-                <div key={user.id} className="flex items-center justify-between">
-                  <span className="ml-3 font-medium">{user.username}</span>
-                  <button
-                    onClick={() => followUser(user.id)} // Follow when button is clicked
-                    className="px-4 py-1 rounded-full text-sm font-medium bg-teal-600 text-white hover:bg-teal-700"
-                  >
+        <Modal title="Discover Travelers" onClose={() => setIsUnfollowingPopupOpen(false)}>
+          {unfollowingList.length > 0 ? (
+            <div className="space-y-3">
+              {unfollowingList.map(u => (
+                <div key={u.id} className="flex items-center justify-between py-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-semibold text-sm">
+                      {u.username[0]?.toUpperCase()}
+                    </div>
+                    <span className="font-medium text-sm text-slate-700">{u.username}</span>
+                  </div>
+                  <button onClick={() => handleFollowUser(u.id)} className="text-xs font-semibold text-teal-600 hover:text-teal-800 transition-colors px-3 py-1.5 rounded-lg bg-teal-50 hover:bg-teal-100">
                     Follow
                   </button>
                 </div>
               ))}
             </div>
-            <Button
-              onClick={() => setIsUnfollowingPopupOpen(false)}
-              className="bg-light-blue-500 hover:bg-light-blue-600 mt-4"
-            >
-              Close
-            </Button>
-          </div>
-        </div>
+          ) : <p className="text-sm text-slate-400 py-4 text-center">You're following everyone!</p>}
+        </Modal>
       )}
-    </div>
+    </>
   );
 };
 

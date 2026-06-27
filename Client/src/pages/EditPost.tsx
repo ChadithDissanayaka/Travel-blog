@@ -1,77 +1,64 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios'; // For API calls
-import { useAuth } from '../hooks/useAuth';
+import { Edit3, ImagePlus, X } from 'lucide-react';
+import Button from '../components/Common/Button';
+import { postService } from '../services/post.service';
+import { BlogPost } from '../types/post';
 
 const EditPost = () => {
-  const { user } = useAuth();
-  const { id } = useParams<{ id: string }>(); // Get post ID from URL
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [post, setPost] = useState<any>(null);
+  const [post, setPost] = useState<BlogPost | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [countryName, setCountryName] = useState('');
   const [dateOfVisit, setDateOfVisit] = useState('');
   const [image, setImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  // Fetch the existing post data
   useEffect(() => {
     const fetchPostData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`http://localhost:3000/api/blogposts/${id}`, {
-          withCredentials: true,
-          headers: {
-            'x-csrf-token': localStorage.getItem('csrfToken'),
-          } 
-        });
-
-        const postData = response.data;
+        const postData = await postService.getById(id!);
         setPost(postData);
         setTitle(postData.title);
         setContent(postData.content);
         setCountryName(postData.country_name);
-        setDateOfVisit(postData.date_of_visit);
+        // date_of_visit is an ISO string; <input type="date"> requires YYYY-MM-DD
+        setDateOfVisit(postData.date_of_visit ? postData.date_of_visit.slice(0, 10) : '');
+        if (postData.image) setPreviewUrl(postData.image);
       } catch (error) {
         console.error('Error fetching post data:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    if (id) {
-      fetchPostData();
-    }
+    if (id) fetchPostData();
   }, [id]);
 
-  // Handle form submission
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setSubmitting(true);
-
     const formData = new FormData();
     formData.append('title', title);
     formData.append('content', content);
     formData.append('countryName', countryName);
     formData.append('dateOfVisit', dateOfVisit);
-    if (image) {
-      formData.append('image', image);
-    }
-
+    if (image) formData.append('image', image);
     try {
-      const response = await axios.put(`http://localhost:3000/api/blogposts/update/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'x-csrf-token': localStorage.getItem('csrfToken'), 
-        },
-        withCredentials: true,
-      });
-
-      // Redirect to the post detail page or blog page after the edit
+      await postService.update(id!, formData);
       navigate(`/post/${id}`);
     } catch (error) {
       console.error('Error updating post:', error);
@@ -80,87 +67,113 @@ const EditPost = () => {
     }
   };
 
-  // If the post is still being loaded
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="pt-20 max-w-2xl mx-auto space-y-4">
+        <div className="skeleton h-10 w-48 rounded-xl" />
+        <div className="bg-white rounded-3xl shadow-card p-8 space-y-5">
+          {[...Array(5)].map((_, i) => <div key={i} className="skeleton h-12 w-full rounded-xl" />)}
+        </div>
+      </div>
+    );
   }
 
-  if (!post) {
-    return <div>Post not found</div>;
-  }
+  if (!post) return <div className="pt-20 text-center text-slate-500">Post not found</div>;
 
   return (
-    <div className="pt-16 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">Edit Post</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="pt-20 max-w-2xl mx-auto">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-10 h-10 rounded-xl bg-teal-600 flex items-center justify-center">
+          <Edit3 className="h-5 w-5 text-white" />
+        </div>
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700">Title</label>
-          <input
-            type="text"
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          />
+          <h1 className="font-display text-3xl font-bold text-slate-900">Edit Story</h1>
+          <p className="text-slate-500 text-sm">Update your travel experience</p>
         </div>
+      </div>
 
-        <div>
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700">Content</label>
-          <textarea
-            id="content"
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-            rows={5}
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+      <div className="bg-white rounded-3xl shadow-card p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all"
+              placeholder="Your story title…"
+            />
+          </div>
 
-        <div>
-          <label htmlFor="country_name" className="block text-sm font-medium text-gray-700">Country Name</label>
-          <input
-            type="text"
-            id="country_name"
-            value={countryName}
-            onChange={(e) => setCountryName(e.target.value)}
-            required
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Country</label>
+              <input
+                type="text"
+                value={countryName}
+                onChange={(e) => setCountryName(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Date of Visit</label>
+              <input
+                type="date"
+                value={dateOfVisit}
+                onChange={(e) => setDateOfVisit(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all"
+              />
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="date_of_visit" className="block text-sm font-medium text-gray-700">Date of Visit</label>
-          <input
-            type="date"
-            id="date_of_visit"
-            value={dateOfVisit}
-            onChange={(e) => setDateOfVisit(e.target.value)}
-            required
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+          {/* Image */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <ImagePlus className="h-3.5 w-3.5 text-slate-400" /> Cover Image
+            </label>
+            {previewUrl ? (
+              <div className="relative rounded-2xl overflow-hidden h-48">
+                <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => { setPreviewUrl(null); setImage(null); }}
+                  className="absolute top-3 right-3 w-7 h-7 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center h-36 rounded-2xl border-2 border-dashed border-slate-200 hover:border-teal-400 hover:bg-teal-50/30 cursor-pointer transition-all">
+                <ImagePlus className="h-8 w-8 text-slate-300 mb-2" />
+                <span className="text-sm text-slate-400">Click to upload an image</span>
+                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+              </label>
+            )}
+          </div>
 
-        <div>
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700">Image</label>
-          <input
-            type="file"
-            id="image"
-            onChange={(e) => setImage(e.target.files ? e.target.files[0] : null)}
-            className="mt-1 block w-full p-2 border border-gray-300 rounded-md"
-          />
-        </div>
+          {/* Content */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Story Content</label>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              rows={10}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm text-slate-700 placeholder-slate-400 leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent focus:bg-white transition-all resize-none"
+            />
+          </div>
 
-        <div className="flex justify-end space-x-4">
-          <button
-            type="submit"
-            disabled={submitting}
-            className={`px-4 py-2 rounded-md text-white ${submitting ? 'bg-gray-400' : 'bg-teal-600'}`}
-          >
-            {submitting ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </form>
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={() => navigate(`/post/${id}`)}>Cancel</Button>
+            <Button type="submit" isLoading={submitting}>
+              <Edit3 className="h-4 w-4" /> Save Changes
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

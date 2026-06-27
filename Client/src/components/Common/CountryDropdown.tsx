@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import axios from 'axios';
+import { countryService } from '../../services/country.service';
 
 interface Country {
   name: string;
   capital: string;
   currency: string;
   flag: string;
+}
+
+interface ApiCountry {
+  name?: {
+    common?: string;
+  };
+  capital?: string[];
+  currencies?: Record<string, { name?: string }>;
+  flags?: {
+    svg?: string;
+  };
 }
 
 interface CountryDropdownProps {
@@ -32,27 +43,16 @@ const CountryDropdown = ({
   useEffect(() => {
     const fetchCountries = async () => {
       try {
-        const storedApiKey = JSON.parse(localStorage.getItem('apiKey'));
-        const apiKey = storedApiKey[0]?.key;
-        if (!apiKey) {
-          setFetchError('API key is missing.');
-          return;
-        }
+        const data = await countryService.getAll();
 
-        const response = await axios.get('http://localhost:3000/api/countries', {
-          headers: {
-            'x-api-key': apiKey,
-          },
-        });
-
-        if (Array.isArray(response.data)) {
+        if (Array.isArray(data)) {
           // Map the data if it's an array
-          const countries = response.data.map((country, index) => {
+          const countries = data.map((country: ApiCountry) => {
             // Check if country has the necessary fields before accessing them
             const name = country.name && country.name.common ? country.name.common : 'No name available';
             const capital = country.capital && country.capital.length > 0 ? country.capital[0] : 'No capital available';
             const currency = country.currencies && Object.values(country.currencies).length > 0
-              ? `${Object.values(country.currencies)[0].name} (${Object.keys(country.currencies)[0]})`
+              ? `${Object.values(country.currencies)[0].name || ''} (${Object.keys(country.currencies)[0]})`
               : 'No currency available';
             const flag = country.flags && country.flags.svg ? country.flags.svg : 'No flag available';
 
@@ -65,7 +65,7 @@ const CountryDropdown = ({
           throw new Error("Response data is not an array.");
         }
 
-      } catch (error) {
+      } catch {
         setFetchError('Error fetching countries data');
       } finally {
         setLoading(false);

@@ -1,66 +1,75 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Globe, ArrowRight } from 'lucide-react';
 import Input from '../components/Common/Input';
 import Button from '../components/Common/Button';
-import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
+import { useAuth } from '../hooks/useAuth';
 
 interface LoginFormData {
   username: string;
   password: string;
 }
 
+interface LocationState {
+  from?: { pathname: string };
+}
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as any)?.from?.pathname || '/';
+  const state = location.state as LocationState;
+  const from = state?.from?.pathname || '/';
 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { login } = useAuth(); // Get login function from context
+
+  const { login } = useAuth();
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>();
 
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true);
       setError(null);
-
-      // Call the login function from AuthContext
       await login(data.username, data.password);
-      
       navigate(from, { replace: true });
-    } catch (err) {
-      setError('Failed to log in');
+    } catch {
+      setError('Invalid username or password. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="pt-16 max-w-md mx-auto">
-      <h1 className="text-3xl font-bold mb-6 text-center">Welcome Back</h1>
-
-      <div className="bg-white rounded-lg shadow-md p-6">
-        {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded-md mb-4">
-            {error}
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center pt-16 pb-12">
+      <div className="w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-teal-600 shadow-lg mb-4">
+            <Globe className="h-7 w-7 text-white" />
           </div>
-        )}
+          <h1 className="font-display text-3xl font-bold text-slate-900 mb-1">Welcome back</h1>
+          <p className="text-slate-500 text-sm">Sign in to continue your journey</p>
+        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="mb-4">
+        {/* Card */}
+        <div className="bg-white rounded-3xl shadow-card p-8">
+          {error && (
+            <div className="flex items-start gap-3 bg-red-50 border border-red-100 text-red-700 px-4 py-3 rounded-xl mb-6 text-sm">
+              <span className="mt-0.5">⚠</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <Input
               label="Username"
               placeholder="Enter your username"
               {...register('username', { required: 'Username is required' })}
               error={errors.username?.message}
             />
-          </div>
 
-          <div className="mb-6">
             <div className="relative">
               <Input
                 label="Password"
@@ -68,32 +77,32 @@ const Login = () => {
                 placeholder="Enter your password"
                 {...register('password', {
                   required: 'Password is required',
-                  minLength: { value: 6, message: 'Password must be at least 6 characters' }
+                  minLength: { value: 6, message: 'At least 6 characters required' }
                 })}
                 error={errors.password?.message}
               />
               <button
                 type="button"
-                className="absolute right-3 top-9 text-gray-500"
                 onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-9 text-slate-400 hover:text-slate-600 transition-colors"
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
+
+            <Button type="submit" fullWidth isLoading={isLoading} size="lg" className="mt-2">
+              Sign in <ArrowRight className="h-4 w-4" />
+            </Button>
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+            <p className="text-sm text-slate-500">
+              Don't have an account?{' '}
+              <Link to="/register" className="text-teal-600 hover:text-teal-800 font-semibold">
+                Create one free
+              </Link>
+            </p>
           </div>
-
-          <Button type="submit" fullWidth isLoading={isLoading}>
-            Log In
-          </Button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-teal-600 hover:text-teal-800">
-              Sign up
-            </Link>
-          </p>
         </div>
       </div>
     </div>

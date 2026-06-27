@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Globe, Search, User, LogOut } from 'lucide-react';
+import { Menu, X, Globe, User, LogOut, PenLine } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SearchBar from '../Common/SearchBar';
 
@@ -11,15 +11,8 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 12);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -30,91 +23,106 @@ const Navbar = () => {
   };
 
   return (
-    <nav className={`fixed w-full z-10 transition-all duration-300 ${
-      isScrolled ? 'bg-white shadow-md py-2' : 'bg-transparent py-4'
-    }`}>
-      <div className="container mx-auto px-4">
+    <nav
+      className={`fixed w-full z-50 transition-all duration-300 ${
+        isScrolled
+          ? 'nav-scrolled py-3'
+          : 'bg-transparent py-5'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <Globe className="h-8 w-8 text-teal-600" />
-            <span className="font-bold text-xl text-teal-700">Wanderlust</span>
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center shadow-sm group-hover:bg-teal-700 transition-colors">
+              <Globe className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-display font-bold text-xl text-slate-800 tracking-tight">
+              Wanderlust
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-6">
-            <SearchBar className="w-96" />
-            <Link to="/" className="nav-link">Home</Link>
-            
+          {/* Desktop */}
+          <div className="hidden md:flex items-center gap-6">
+            <SearchBar className="w-72" />
+            <Link to="/" className="nav-link">Explore</Link>
+
             {user ? (
               <>
-                <Link to="/blog" className="nav-link">Blog</Link>
-                <Link to={`/profile/${user.username}`} className="nav-link flex items-center">
-                  <User className="h-4 w-4 mr-1" />
-                  <span>Profile</span>
+                <Link to="/blog" className="nav-link">My Blog</Link>
+                <Link
+                  to="/create-post"
+                  className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md"
+                >
+                  <PenLine className="h-4 w-4" />
+                  Write
+                </Link>
+                <Link
+                  to={`/profile/${user.username}`}
+                  className="flex items-center gap-2 group"
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-teal-400 transition-all">
+                    <img
+                      src={user.profilePicture || user.profile_picture || `https://ui-avatars.com/api/?name=${user.username}&background=0d9488&color=fff`}
+                      alt={user.username}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-sm font-medium text-slate-700 group-hover:text-teal-600 transition-colors">
+                    {user.username}
+                  </span>
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center text-red-500 hover:text-red-700 transition-colors"
+                  className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-500 transition-colors"
                 >
-                  <LogOut className="h-4 w-4 mr-1" />
-                  <span>Logout</span>
+                  <LogOut className="h-4 w-4" />
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-slate-700 hover:text-teal-600 transition-colors">Login</Link>
-                <Link 
-                  to="/register" 
-                  className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-md transition-colors"
+                <Link to="/login" className="nav-link">Sign in</Link>
+                <Link
+                  to="/register"
+                  className="bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md"
                 >
-                  Sign Up
+                  Get started
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile toggle */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-gray-500 focus:outline-none"
+            className="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100 transition-colors"
           >
-            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile drawer */}
         {isOpen && (
-          <div className="md:hidden mt-4 pb-4">
+          <div className="md:hidden mt-4 pb-4 border-t border-slate-100 pt-4">
             <SearchBar className="mb-4" />
-            <div className="flex flex-col space-y-3">
-              <Link to="/" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Home</Link>
-              
+            <div className="flex flex-col gap-1">
+              <Link to="/" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Explore</Link>
               {user ? (
                 <>
-                  <Link to="/blog" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Blog</Link>
-                  <Link 
-                    to={`/profile/${user.username}`} 
-                    className="mobile-nav-link" 
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Profile
+                  <Link to="/blog" className="mobile-nav-link" onClick={() => setIsOpen(false)}>My Blog</Link>
+                  <Link to="/create-post" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Write a Post</Link>
+                  <Link to={`/profile/${user.username}`} className="mobile-nav-link flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                    <User className="h-4 w-4" /> Profile
                   </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="text-left text-red-500 py-2"
-                  >
-                    Logout
+                  <button onClick={handleLogout} className="text-left py-2.5 text-red-500 font-medium text-sm">
+                    Sign out
                   </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Login</Link>
-                  <Link 
-                    to="/register" 
-                    className="bg-teal-600 text-white px-4 py-2 rounded-md text-center" 
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Sign Up
+                  <Link to="/login" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Sign in</Link>
+                  <Link to="/register" className="mt-2 bg-teal-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl text-center" onClick={() => setIsOpen(false)}>
+                    Get started
                   </Link>
                 </>
               )}

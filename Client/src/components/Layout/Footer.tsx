@@ -1,66 +1,75 @@
 import { Link } from 'react-router-dom';
-import { Globe, Instagram, Twitter, Facebook } from 'lucide-react';
+import { Globe, Instagram, Twitter, Facebook, Heart } from 'lucide-react';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-slate-800 text-white pt-12 pb-6">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center space-x-2 mb-4">
-              <Globe className="h-6 w-6 text-teal-400" />
-              <span className="font-bold text-xl">Wanderlust</span>
+    <footer className="bg-slate-900 text-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-slate-800">
+          {/* Brand */}
+          <div className="md:col-span-2">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center">
+                <Globe className="h-5 w-5 text-white" />
+              </div>
+              <span className="font-display font-bold text-xl tracking-tight">Wanderlust</span>
             </div>
-            <p className="text-slate-300 mb-4">
-              Share your travel experiences and discover new destinations with fellow explorers.
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xs mb-6">
+              A community of passionate travelers sharing stories, tips, and inspiration from every corner of the world.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
+            <div className="flex gap-3">
+              {[Instagram, Twitter, Facebook].map((Icon, i) => (
+                <a
+                  key={i}
+                  href="#"
+                  className="w-9 h-9 rounded-lg bg-slate-800 hover:bg-teal-600 flex items-center justify-center transition-colors"
+                >
+                  <Icon className="h-4 w-4 text-slate-400 group-hover:text-white" />
+                </a>
+              ))}
             </div>
           </div>
-          
+
           <div>
-            <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
-            <ul className="space-y-2">
-              <li><Link to="/" className="text-slate-300 hover:text-teal-400 transition-colors">Home</Link></li>
-              <li><Link to="/login" className="text-slate-300 hover:text-teal-400 transition-colors">Login</Link></li>
-              <li><Link to="/register" className="text-slate-300 hover:text-teal-400 transition-colors">Sign Up</Link></li>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Navigate</h4>
+            <ul className="space-y-2.5">
+              {[
+                { to: '/', label: 'Explore Stories' },
+                { to: '/login', label: 'Sign In' },
+                { to: '/register', label: 'Join Wanderlust' },
+              ].map(({ to, label }) => (
+                <li key={to}>
+                  <Link to={to} className="text-sm text-slate-400 hover:text-teal-400 transition-colors">
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
-          
+
           <div>
-            <h3 className="font-semibold text-lg mb-4">Popular Destinations</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Japan</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Italy</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">New Zealand</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Iceland</a></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold text-lg mb-4">Support</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Help Center</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="text-slate-300 hover:text-teal-400 transition-colors">Contact Us</a></li>
+            <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">Destinations</h4>
+            <ul className="space-y-2.5">
+              {['Japan', 'Italy', 'New Zealand', 'Iceland', 'Sri Lanka'].map((dest) => (
+                <li key={dest}>
+                  <a href="#" className="text-sm text-slate-400 hover:text-teal-400 transition-colors">
+                    {dest}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
-        
-        <div className="border-t border-slate-700 mt-8 pt-6 text-center text-slate-400">
-          <p>&copy; {currentYear} Wanderlust Travel Blog. All rights reserved.</p>
+
+        <div className="flex flex-col sm:flex-row justify-between items-center pt-8 gap-4">
+          <p className="text-xs text-slate-500">
+            © {currentYear} Wanderlust Travel Blog. All rights reserved.
+          </p>
+          <p className="text-xs text-slate-500 flex items-center gap-1">
+            Made with <Heart className="h-3 w-3 text-rose-500 fill-rose-500" /> for explorers
+          </p>
         </div>
       </div>
     </footer>

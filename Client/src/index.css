@@ -1,19 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
+  * {
+    box-sizing: border-box;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply text-gray-800;
+    font-family: 'Inter', sans-serif;
+    background-color: #F8F7F4;
+    color: #1a1a2e;
+    -webkit-font-smoothing: antialiased;
   }
 }
 
 @layer components {
-  .nav-link {
-    @apply text-slate-700 hover:text-teal-600 transition-colors;
+  .font-display {
+    font-family: 'Playfair Display', Georgia, serif;
   }
-  
+
+  /* Glassmorphism effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dark {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Nav */
+  .nav-scrolled {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+
+  .nav-link {
+    @apply text-slate-600 hover:text-teal-600 font-medium text-sm transition-colors duration-200;
+  }
+
   .mobile-nav-link {
-    @apply block py-2 text-slate-700 hover:text-teal-600 transition-colors;
+    @apply block py-2.5 text-slate-700 hover:text-teal-600 font-medium transition-colors;
+  }
+
+  /* Card hover */
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1;
+  }
+
+  /* Pill badge */
+  .pill {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase;
+  }
+
+  /* Sort chips */
+  .sort-chip {
+    @apply flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border whitespace-nowrap;
+  }
+
+  .sort-chip-active {
+    @apply bg-teal-600 text-white border-teal-600 shadow-sm;
+  }
+
+  .sort-chip-inactive {
+    @apply bg-white text-slate-600 border-slate-200 hover:border-teal-400 hover:text-teal-600;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply animate-pulse bg-slate-200 rounded-lg;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }

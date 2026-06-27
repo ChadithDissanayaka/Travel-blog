@@ -1,12 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from 'react';
-import axios from 'axios';
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  profilePicture?: string;
-}
+import { authService } from '../services/auth.service';
+import { User } from '../types/user';
 
 interface AuthContextType {
   user: User | null;
@@ -51,23 +45,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.post('http://localhost:3000/api/auth/login', {
-        username,
-        password,
-      }, {
-        withCredentials: true, // Make sure the cookies are sent with the request
-      });
+      const data = await authService.login({ username, password });
 
-      if (response.data.csrfToken) {
-        const loggedInUser = response.data.user;
+      if (data.accessToken) {
+        const loggedInUser = data.user;
+        const token = data.accessToken;
 
-        // Set the user data in the context and localStorage
+        // Set the user data and token in context and localStorage
         setUser(loggedInUser);
         localStorage.setItem('user', JSON.stringify(loggedInUser));
-
-        // You can store the CSRF token and API key in sessionStorage if needed
-        localStorage.setItem('csrfToken', response.data.csrfToken);
-        localStorage.setItem('apiKey', JSON.stringify(response.data.apiKey));
+        localStorage.setItem('token', token);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
@@ -82,16 +69,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(true);
       setError(null);
 
-      const response = await axios.post('http://localhost:3000/api/auth/register', {
-        username,
-        email,
-        password,
-      });
+      const data = await authService.register({ username, email, password });
 
-      if (response.data.accessToken) {
-        const newUser = response.data.user;
+      if (data.accessToken) {
+        const newUser = data.user;
+        const token = data.accessToken;
+
         setUser(newUser);
         localStorage.setItem('user', JSON.stringify(newUser));
+        localStorage.setItem('token', token);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -106,13 +92,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(true);
       setError(null);
 
-      // Send request to the backend API to log out
-      await axios.post('http://localhost:3000/api/auth/logout');
+      await authService.logout();
 
       // Clear session and local storage
       localStorage.removeItem('user');
-      localStorage.removeItem('csrfToken');
-      localStorage.removeItem('apiKey');
+      localStorage.removeItem('token');
 
       // Set the user state to null
       setUser(null);
@@ -129,8 +113,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setLoading(true);
       setError(null);
 
-      // Mock delay, replace with actual API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await authService.resetPassword(email);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Password reset failed');
       throw err;
