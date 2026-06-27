@@ -1,0 +1,95 @@
+// Prisma Schema for Travel Blog
+// Uses SQLite as the database provider
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  username       String    @unique
+  email          String    @unique
+  password       String
+  address        String?
+  description    String?
+  profilePicture String?   @map("profile_picture")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  blogPosts      BlogPost[]
+  comments       Comment[]
+  likes          Like[]
+
+  // Follow relations (self-referential many-to-many)
+  followers      Follower[] @relation("following") // users who follow this user
+  following      Follower[] @relation("follower")  // users this user follows
+
+  @@map("users")
+}
+
+model BlogPost {
+  postId      Int       @id @default(autoincrement()) @map("post_id")
+  userId      Int       @map("user_id")
+  title       String
+  content     String
+  countryName String    @map("country_name")
+  dateOfVisit DateTime  @map("date_of_visit")
+  image       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+  likes       Like[]
+
+  @@map("blog_posts")
+}
+
+model Comment {
+  commentId   Int       @id @default(autoincrement()) @map("comment_id")
+  postId      Int       @map("post_id")
+  userId      Int       @map("user_id")
+  commentText String    @map("comment_text")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  post        BlogPost  @relation(fields: [postId], references: [postId], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+model Like {
+  likeId    Int       @id @default(autoincrement()) @map("like_id")
+  postId    Int       @map("post_id")
+  userId    Int       @map("user_id")
+  isLike    Boolean   @map("is_like")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  post      BlogPost  @relation(fields: [postId], references: [postId], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Unique constraint: a user can only have one like/dislike per post
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Follower {
+  followerId  Int      @map("follower_id")
+  followingId Int      @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  // Composite primary key
+  @@id([followerId, followingId])
+  @@map("followers")
+}
