@@ -48,5 +48,8 @@ Thumbs.db
 *.mov
 *.wmv
 
-# SQLite database files (adjust if your database location differs)
-db/*.sqlite
+# Database files
+prisma/*.db
+
+# Ignore the data seeder script
+src/utils/dataSeeder.js
