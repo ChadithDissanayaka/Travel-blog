@@ -1,3 +1,4 @@
+// src/App.tsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Layout } from './components/Layout/Layout';
 import { AuthProvider } from './contexts/AuthContext';
@@ -9,8 +10,11 @@ import Blog from './pages/Blog';
 import CreatePost from './pages/CreatePost';
 import EditPost from './pages/EditPost';
 import PostDetail from './pages/PostDetail';
-import ProtectedRoute from './components/Common/ProtectedRoute';
 import EditUser from './pages/EditUser';
+import Albums from './pages/Albums';
+import AlbumDetail from './pages/AlbumDetail';
+import UrlShortener from './pages/UrlShortener';
+import ProtectedRoute from './components/Common/ProtectedRoute';
 
 function App() {
   return (
@@ -18,43 +22,23 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/edit-user" element={<EditUser />} />
-            <Route path="/login" element={<Login />} />
+            {/* ── Public ────────────────────────────────── */}
+            <Route path="/"         element={<Home />} />
+            <Route path="/login"    element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/post/:id" element={<PostDetail />} />
-            <Route 
-              path="/profile/:username" 
-              element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/blog" 
-              element={
-                <ProtectedRoute>
-                  <Blog />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/create-post" 
-              element={
-                <ProtectedRoute>
-                  <CreatePost />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/edit-post/:id" 
-              element={
-                <ProtectedRoute>
-                  <EditPost />
-                </ProtectedRoute>
-              } 
-            />
+
+            {/* ── Protected (logged-in users only) ──────── */}
+            <Route path="/edit-user" element={<ProtectedRoute><EditUser /></ProtectedRoute>} />
+            <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            <Route path="/blog" element={<ProtectedRoute><Blog /></ProtectedRoute>} />
+            <Route path="/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
+            <Route path="/edit-post/:id" element={<ProtectedRoute><EditPost /></ProtectedRoute>} />
+            <Route path="/url-shortener" element={<ProtectedRoute><UrlShortener /></ProtectedRoute>} />
+
+            {/* Albums — registered users only */}
+            <Route path="/profile/:username/albums" element={<ProtectedRoute><Albums /></ProtectedRoute>} />
+            <Route path="/albums/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
           </Routes>
         </Layout>
       </Router>
