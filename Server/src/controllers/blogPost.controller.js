@@ -104,42 +104,97 @@ const getBlogPostsByUserId = async (req, res, next) => {
  * POST /api/blogposts/create (protected)
  */
 const createBlogPost = async (req, res, next) => {
-  const { title, content, countryName, dateOfVisit } = req.body;
+  const { title, content, countryName, dateOfVisit, albumId, postLinks } = req.body;
   const userId = req.user.id;
   const image = req.fileUrl || null;
 
   if (!title || !content || !countryName || !dateOfVisit) {
-    return res.status(400).json({
-      error: 'All fields (title, content, countryName, dateOfVisit) are required.',
-    });
+    return res.status(400).json({ error: 'All fields except image/album are required' });
+  }
+
+  // Validate dateOfVisit value and year bounds
+  const parsedDate = Date.parse(dateOfVisit);
+  if (isNaN(parsedDate)) {
+    return res.status(400).json({ error: 'dateOfVisit must be a valid parseable date string' });
+  }
+  const dateObj = new Date(parsedDate);
+  if (dateObj.getFullYear() < 1000 || dateObj.getFullYear() > 3000) {
+    return res.status(400).json({ error: 'dateOfVisit must be between year 1000 and 3000' });
+  }
+
+  let parsedLinks = [];
+  if (postLinks) {
+    try {
+      parsedLinks = typeof postLinks === 'string' ? JSON.parse(postLinks) : postLinks;
+    } catch (e) {
+      console.warn(`Failed to parse postLinks: ${e.message}`);
+    }
   }
 
   try {
-    const result = await blogPostService.createBlogPost(userId, title, content, countryName, dateOfVisit, image);
-    res.json(result);
+    const result = await blogPostService.createBlogPost(
+      userId,
+      title,
+      content,
+      countryName,
+      dateOfVisit,
+      image,
+      albumId || null,
+      parsedLinks
+    );
+    res.status(201).json(result);
   } catch (error) {
     next(error);
   }
 };
 
 /**
- * PUT /api/blogposts/update/:postId (protected)
+ * PUT /api/blogposts/:postId (protected)
  */
 const updateBlogPost = async (req, res, next) => {
   const { postId } = req.params;
-  const { title, content, countryName, dateOfVisit } = req.body;
-  const image = req.fileUrl || null;
+  const { title, content, countryName, dateOfVisit, albumId, postLinks } = req.body;
+  const updatedImage = req.fileUrl || undefined;
 
-  if (!title || !content || !countryName || !dateOfVisit) {
-    return res.status(400).json({
-      error: 'All fields (title, content, countryName, dateOfVisit) are required.',
-    });
+  // Validate dateOfVisit if provided
+  if (dateOfVisit) {
+    const parsedDate = Date.parse(dateOfVisit);
+    if (isNaN(parsedDate)) {
+      return res.status(400).json({ error: 'dateOfVisit must be a valid parseable date string' });
+    }
+    const dateObj = new Date(parsedDate);
+    if (dateObj.getFullYear() < 1000 || dateObj.getFullYear() > 3000) {
+      return res.status(400).json({ error: 'dateOfVisit must be between year 1000 and 3000' });
+    }
   }
 
   try {
-    const currentPost = await blogPostService.getBlogPostById(postId);
-    const updatedImage = image || currentPost.image;
-    const result = await blogPostService.updateBlogPost(postId, title, content, countryName, dateOfVisit, updatedImage);
+    // Check ownership
+    const existingPost = await blogPostService.getBlogPostById(postId);
+    if (existingPost.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden. You do not own this post.' });
+    }
+
+    let parsedLinks = undefined;
+    if (postLinks !== undefined) {
+      try {
+        parsedLinks = typeof postLinks === 'string' ? JSON.parse(postLinks) : postLinks;
+      } catch (e) {
+        console.warn(`Failed to parse postLinks: ${e.message}`);
+      }
+    }
+
+    // albumId: pass as string (or null/undefined) — service handles conversion
+    const result = await blogPostService.updateBlogPost(
+      postId,
+      title,
+      content,
+      countryName,
+      dateOfVisit,
+      updatedImage,
+      albumId,
+      parsedLinks
+    );
     res.json(result);
   } catch (error) {
     next(error);

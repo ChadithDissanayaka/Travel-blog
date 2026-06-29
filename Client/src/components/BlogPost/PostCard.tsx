@@ -89,7 +89,9 @@ const PostCard = ({
           <span className="text-slate-300 text-xs">·</span>
           <div className="flex items-center text-xs text-slate-400 gap-1">
             <Calendar className="h-3 w-3" />
-            {format(new Date(date_of_visit), 'MMM d, yyyy')}
+            {date_of_visit && !isNaN(Date.parse(date_of_visit))
+              ? format(new Date(date_of_visit), 'MMM d, yyyy')
+              : 'N/A'}
           </div>
         </div>
 

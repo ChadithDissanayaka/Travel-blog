@@ -1,5 +1,6 @@
-// Prisma Schema for Travel Blog
-// Uses SQLite as the database provider
+// Prisma Schema for Travel Blog — Redesigned Edition
+// Albums = Trip collections of Blog Posts
+// PostLinks = Useful URLs attached to a blog post (hotel, map, restaurant, etc.)
 
 generator client {
   provider = "prisma-client-js"
@@ -11,45 +12,82 @@ datasource db {
 }
 
 model User {
-  id             Int       @id @default(autoincrement())
-  username       String    @unique
-  email          String    @unique
+  id             Int         @id @default(autoincrement())
+  username       String      @unique
+  email          String      @unique
   password       String
   address        String?
   description    String?
-  profilePicture String?   @map("profile_picture")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  profilePicture String?     @map("profile_picture")
+  createdAt      DateTime    @default(now()) @map("created_at")
 
   // Relations
   blogPosts      BlogPost[]
   comments       Comment[]
   likes          Like[]
+  albums         Album[]
+  shortLinks     ShortLink[]
 
-  // Follow relations (self-referential many-to-many)
-  followers      Follower[] @relation("following") // users who follow this user
-  following      Follower[] @relation("follower")  // users this user follows
+  // Follow relations
+  followers      Follower[]  @relation("following")
+  following      Follower[]  @relation("follower")
 
   @@map("users")
 }
 
+// ─── Trip Album (container of blog posts) ────────────────
+model Album {
+  id          Int        @id @default(autoincrement())
+  userId      Int        @map("user_id")
+  title       String
+  description String?
+  countryName String     @map("country_name")
+  coverImage  String?    @map("cover_image")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts       BlogPost[]
+
+  @@map("albums")
+}
+
+// ─── Blog Post ────────────────────────────────────────────
 model BlogPost {
-  postId      Int       @id @default(autoincrement()) @map("post_id")
-  userId      Int       @map("user_id")
+  postId      Int        @id @default(autoincrement()) @map("post_id")
+  userId      Int        @map("user_id")
+  albumId     Int?       @map("album_id")   // optional — belongs to an album or standalone
   title       String
   content     String
-  countryName String    @map("country_name")
-  dateOfVisit DateTime  @map("date_of_visit")
+  countryName String     @map("country_name")
+  dateOfVisit DateTime   @map("date_of_visit")
   image       String?
-  createdAt   DateTime  @default(now()) @map("created_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
 
-  // Relations
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  album       Album?     @relation(fields: [albumId], references: [id], onDelete: SetNull)
   comments    Comment[]
   likes       Like[]
+  postLinks   PostLink[]
 
   @@map("blog_posts")
 }
 
+// ─── Post Link (useful URLs within a blog post) ──────────
+model PostLink {
+  id        Int      @id @default(autoincrement())
+  postId    Int      @map("post_id")
+  title     String                          // e.g. "Hotel Booking", "Google Maps"
+  url       String                          // the full URL
+  linkType  String   @default("other") @map("link_type")  // hotel | map | restaurant | attraction | other
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post      BlogPost @relation(fields: [postId], references: [postId], onDelete: Cascade)
+
+  @@map("post_links")
+}
+
+// ─── Comment ──────────────────────────────────────────────
 model Comment {
   commentId   Int       @id @default(autoincrement()) @map("comment_id")
   postId      Int       @map("post_id")
@@ -57,13 +95,13 @@ model Comment {
   commentText String    @map("comment_text")
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  // Relations
   post        BlogPost  @relation(fields: [postId], references: [postId], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("comments")
 }
 
+// ─── Like ─────────────────────────────────────────────────
 model Like {
   likeId    Int       @id @default(autoincrement()) @map("like_id")
   postId    Int       @map("post_id")
@@ -71,25 +109,52 @@ model Like {
   isLike    Boolean   @map("is_like")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  // Relations
   post      BlogPost  @relation(fields: [postId], references: [postId], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  // Unique constraint: a user can only have one like/dislike per post
   @@unique([userId, postId])
   @@map("likes")
 }
 
+// ─── Follower ─────────────────────────────────────────────
 model Follower {
   followerId  Int      @map("follower_id")
   followingId Int      @map("following_id")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  // Relations
   follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
   following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
 
-  // Composite primary key
   @@id([followerId, followingId])
   @@map("followers")
 }
+
+// ─── Shortened URL ─────────────────────────────────────────
+model ShortLink {
+  id          Int        @id @default(autoincrement())
+  userId      Int        @map("user_id")
+  originalUrl String     @map("original_url")
+  slug        String     @unique
+  clicks      Int        @default(0)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clickLogs   ClickLog[]
+
+  @@map("short_links")
+}
+
+// ─── Click Log ─────────────────────────────────────────────
+model ClickLog {
+  id          Int      @id @default(autoincrement())
+  shortLinkId Int      @map("short_link_id")
+  userAgent   String?  @map("user_agent")
+  referer     String?
+  clickedAt   DateTime @default(now()) @map("clicked_at")
+
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+
+  @@map("click_logs")
+}
+

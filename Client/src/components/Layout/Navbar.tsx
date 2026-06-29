@@ -1,6 +1,7 @@
+// src/components/Layout/Navbar.tsx
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Globe, User, LogOut, PenLine } from 'lucide-react';
+import { Menu, X, Globe, User, LogOut, PenLine, FolderOpen } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import SearchBar from '../Common/SearchBar';
 
@@ -25,13 +26,12 @@ const Navbar = () => {
   return (
     <nav
       className={`fixed w-full z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'nav-scrolled py-3'
-          : 'bg-transparent py-5'
+        isScrolled ? 'nav-scrolled py-3' : 'bg-transparent py-5'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex justify-between items-center">
+
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-9 h-9 rounded-xl bg-teal-600 flex items-center justify-center shadow-sm group-hover:bg-teal-700 transition-colors">
@@ -42,7 +42,7 @@ const Navbar = () => {
             </span>
           </Link>
 
-          {/* Desktop */}
+          {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-6">
             <SearchBar className="w-72" />
             <Link to="/" className="nav-link">Explore</Link>
@@ -50,6 +50,17 @@ const Navbar = () => {
             {user ? (
               <>
                 <Link to="/blog" className="nav-link">My Blog</Link>
+
+                {/* Trip Albums */}
+                <Link
+                  to={`/profile/${user.username}/albums`}
+                  className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-teal-600 transition-colors"
+                >
+                  <FolderOpen className="h-4 w-4" />
+                  Trip Albums
+                </Link>
+
+                {/* Write CTA */}
                 <Link
                   to="/create-post"
                   className="flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md"
@@ -57,13 +68,16 @@ const Navbar = () => {
                   <PenLine className="h-4 w-4" />
                   Write
                 </Link>
-                <Link
-                  to={`/profile/${user.username}`}
-                  className="flex items-center gap-2 group"
-                >
+
+                {/* Avatar */}
+                <Link to={`/profile/${user.username}`} className="flex items-center gap-2 group">
                   <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-transparent group-hover:ring-teal-400 transition-all">
                     <img
-                      src={user.profilePicture || user.profile_picture || `https://ui-avatars.com/api/?name=${user.username}&background=0d9488&color=fff`}
+                      src={
+                        user.profilePicture ||
+                        user.profile_picture ||
+                        `https://ui-avatars.com/api/?name=${user.username}&background=0d9488&color=fff`
+                      }
                       alt={user.username}
                       className="w-full h-full object-cover"
                     />
@@ -72,6 +86,7 @@ const Navbar = () => {
                     {user.username}
                   </span>
                 </Link>
+
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-red-500 transition-colors"
@@ -110,8 +125,21 @@ const Navbar = () => {
               {user ? (
                 <>
                   <Link to="/blog" className="mobile-nav-link" onClick={() => setIsOpen(false)}>My Blog</Link>
-                  <Link to="/create-post" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Write a Post</Link>
-                  <Link to={`/profile/${user.username}`} className="mobile-nav-link flex items-center gap-2" onClick={() => setIsOpen(false)}>
+                  <Link
+                    to={`/profile/${user.username}/albums`}
+                    className="mobile-nav-link flex items-center gap-2"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    <FolderOpen className="h-4 w-4" /> Trip Albums
+                  </Link>
+                  <Link to="/create-post" className="mobile-nav-link" onClick={() => setIsOpen(false)}>
+                    Write a Post
+                  </Link>
+                  <Link
+                    to={`/profile/${user.username}`}
+                    className="mobile-nav-link flex items-center gap-2"
+                    onClick={() => setIsOpen(false)}
+                  >
                     <User className="h-4 w-4" /> Profile
                   </Link>
                   <button onClick={handleLogout} className="text-left py-2.5 text-red-500 font-medium text-sm">
@@ -121,7 +149,11 @@ const Navbar = () => {
               ) : (
                 <>
                   <Link to="/login" className="mobile-nav-link" onClick={() => setIsOpen(false)}>Sign in</Link>
-                  <Link to="/register" className="mt-2 bg-teal-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl text-center" onClick={() => setIsOpen(false)}>
+                  <Link
+                    to="/register"
+                    className="mt-2 bg-teal-600 text-white text-sm font-semibold px-4 py-2.5 rounded-xl text-center"
+                    onClick={() => setIsOpen(false)}
+                  >
                     Get started
                   </Link>
                 </>
