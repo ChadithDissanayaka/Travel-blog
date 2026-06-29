@@ -37,6 +37,7 @@ function formatPost(post) {
   return {
     post_id: post.postId,
     user_id: post.userId,
+    album_id: post.albumId ?? null,
     title: post.title,
     content: post.content,
     country_name: post.countryName,
@@ -110,6 +111,9 @@ class BlogPostService {
             },
             orderBy: { createdAt: 'desc' },
           },
+          postLinks: {
+            orderBy: { createdAt: 'asc' },
+          },
           _count: {
             select: { comments: true },
           },
@@ -125,11 +129,12 @@ class BlogPostService {
         prisma.like.count({ where: { postId: post.postId, isLike: false } }),
       ]);
 
-      const { user, _count, comments } = post;
+      const { user, _count, comments, postLinks } = post;
 
       return {
         post_id: post.postId,
         user_id: post.userId,
+        album_id: post.albumId ?? null,
         title: post.title,
         content: post.content,
         country_name: post.countryName,
@@ -141,6 +146,7 @@ class BlogPostService {
         like_count: likeCount,
         dislike_count: dislikeCount,
         comment_count: _count.comments,
+        post_links: postLinks || [],
         comments: comments.map((c) => ({
           comment_id: c.commentId,
           post_id: c.postId,
@@ -281,7 +287,7 @@ class BlogPostService {
   /**
    * Create a new blog post.
    */
-  async createBlogPost(userId, title, content, countryName, dateOfVisit, image) {
+  async createBlogPost(userId, title, content, countryName, dateOfVisit, image, albumId = null, postLinks = []) {
     try {
       const post = await prisma.blogPost.create({
         data: {
@@ -291,11 +297,20 @@ class BlogPostService {
           countryName,
           dateOfVisit: parseDateUTC(dateOfVisit),
           image,
+          albumId: albumId ? Number(albumId) : null,
+          postLinks: {
+            create: postLinks.map(link => ({
+              title: link.title,
+              url: link.url,
+              linkType: link.linkType || 'other',
+            })),
+          },
         },
         include: {
           user: {
             select: { username: true, profilePicture: true },
           },
+          postLinks: true,
         },
       });
 
@@ -303,6 +318,7 @@ class BlogPostService {
       return {
         post_id: post.postId,
         user_id: post.userId,
+        album_id: post.albumId ?? null,
         title: post.title,
         content: post.content,
         country_name: post.countryName,
@@ -314,6 +330,7 @@ class BlogPostService {
         like_count: 0,
         dislike_count: 0,
         comment_count: 0,
+        post_links: post.postLinks || [],
       };
     } catch (error) {
       logger.error(`Error creating blog post: ${error.message}`);
@@ -324,17 +341,35 @@ class BlogPostService {
   /**
    * Update an existing blog post.
    */
-  async updateBlogPost(postId, title, content, countryName, dateOfVisit, image) {
+  async updateBlogPost(postId, title, content, countryName, dateOfVisit, image, albumId = undefined, postLinks = undefined) {
     try {
+      const data = {
+        title,
+        content,
+        countryName,
+        dateOfVisit: parseDateUTC(dateOfVisit),
+        image,
+      };
+      // Only update albumId if explicitly provided
+      if (albumId !== undefined) {
+        data.albumId = albumId ? Number(albumId) : null;
+      }
+
+      // Handle nested postLinks update atomically inside the same transaction
+      if (postLinks !== undefined) {
+        await prisma.postLink.deleteMany({ where: { postId: Number(postId) } });
+        data.postLinks = {
+          create: postLinks.map(link => ({
+            title: link.title,
+            url: link.url,
+            linkType: link.linkType || 'other',
+          })),
+        };
+      }
+
       const updated = await prisma.blogPost.update({
         where: { postId: parseInt(postId) },
-        data: {
-          title,
-          content,
-          countryName,
-          dateOfVisit: parseDateUTC(dateOfVisit),
-          image,
-        },
+        data,
       });
 
       logger.info(`Blog post updated with ID: ${postId}`);

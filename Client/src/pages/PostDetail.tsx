@@ -1,13 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Calendar, MapPin, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Calendar, MapPin, Edit, Trash2, ArrowLeft, Hotel, Map, UtensilsCrossed, Ticket, Link2, ExternalLink, Share2, Check } from 'lucide-react';
 import CommentSection from '../components/BlogPost/CommentSection';
 import LikeDislikeButton from '../components/BlogPost/LikeDislikeButton';
 import Button from '../components/Common/Button';
 import { useAuth } from '../hooks/useAuth';
 import { postService } from '../services/post.service';
+import { shortLinkService } from '../services/shortLink.service';
 import { DetailPost } from '../types/post';
+import type { PostLink } from '../services/postLink.service';
+
+const LINK_CONFIG: Record<string, { icon: typeof Hotel; colorClass: string; label: string }> = {
+  hotel:      { icon: Hotel,           colorClass: 'text-blue-700 bg-blue-50 border-blue-200',    label: 'Hotel'      },
+  map:        { icon: Map,             colorClass: 'text-teal-700 bg-teal-50 border-teal-200',    label: 'Map'        },
+  restaurant: { icon: UtensilsCrossed, colorClass: 'text-orange-700 bg-orange-50 border-orange-200', label: 'Restaurant' },
+  attraction: { icon: Ticket,          colorClass: 'text-purple-700 bg-purple-50 border-purple-200', label: 'Attraction' },
+  other:      { icon: Link2,           colorClass: 'text-slate-600 bg-slate-50 border-slate-200',  label: 'Link'       },
+};
 
 const PostDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +27,101 @@ const PostDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
+
+  const handleShare = async () => {
+    if (!post) return;
+    setSharing(true);
+    try {
+      if (user) {
+        const originalUrl = window.location.href;
+        const link = await shortLinkService.create({ originalUrl });
+        const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+        await navigator.clipboard.writeText(`${baseUrl}/s/${link.slug}`);
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to share post:', err);
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } finally {
+      setSharing(false);
+    }
+  };
+
+  const [copiedLinkId, setCopiedLinkId] = useState<number | null>(null);
+  const [sharingLinkId, setSharingLinkId] = useState<number | null>(null);
+
+  // Map link types to short human-readable abbreviations
+  const LINK_TYPE_ABBREV: Record<string, string> = {
+    hotel:      'hot',
+    map:        'map',
+    restaurant: 'res',
+    attraction: 'att',
+    other:      'lnk',
+  };
+
+  // Build a slug base from the post title: lowercase, replace spaces/special chars with hyphens
+  const buildSlugBase = (title: string) =>
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 32);
+
+  const handleShareUsefulLink = async (
+    e: React.MouseEvent,
+    linkId: number,
+    originalUrl: string,
+    linkType: string
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSharingLinkId(linkId);
+    try {
+      if (user) {
+        const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3000';
+        const typeAbbrev = LINK_TYPE_ABBREV[linkType] || 'lnk';
+        const titleBase = post ? buildSlugBase(post.title) : 'link';
+        const slugBase = `${titleBase}-${typeAbbrev}`;
+
+        // Try slugBase, then slugBase-2, slugBase-3 … until unique
+        let link;
+        let attempt = 0;
+        while (!link) {
+          const customSlug = attempt === 0 ? slugBase : `${slugBase}-${attempt + 1}`;
+          try {
+            link = await shortLinkService.create({ originalUrl, customSlug });
+          } catch (err: any) {
+            if (err?.response?.status === 409 && attempt < 9) {
+              attempt++;
+            } else {
+              // Fallback: create with auto-generated slug
+              link = await shortLinkService.create({ originalUrl });
+            }
+          }
+        }
+
+        await navigator.clipboard.writeText(`${baseUrl}/s/${link.slug}`);
+      } else {
+        await navigator.clipboard.writeText(originalUrl);
+      }
+      setCopiedLinkId(linkId);
+      setTimeout(() => setCopiedLinkId(null), 2500);
+    } catch (err) {
+      console.error('Failed to share useful link:', err);
+      await navigator.clipboard.writeText(originalUrl);
+      setCopiedLinkId(linkId);
+      setTimeout(() => setCopiedLinkId(null), 2000);
+    } finally {
+      setSharingLinkId(null);
+    }
+  };
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -92,7 +197,9 @@ const PostDetail = () => {
           </span>
           <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs font-medium px-3 py-1.5 rounded-full">
             <Calendar className="h-3.5 w-3.5" />
-            {format(new Date(post.date_of_visit), 'MMMM d, yyyy')}
+            {post.date_of_visit && !isNaN(Date.parse(post.date_of_visit))
+              ? format(new Date(post.date_of_visit), 'MMMM d, yyyy')
+              : 'N/A'}
           </span>
         </div>
 
@@ -116,16 +223,30 @@ const PostDetail = () => {
             </div>
           </Link>
 
-          {isAuthor && (
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => navigate(`/edit-post/${post.post_id}`)}>
-                <Edit className="h-3.5 w-3.5" /> Edit
-              </Button>
-              <Button variant="danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
-                <Trash2 className="h-3.5 w-3.5" /> Delete
-              </Button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleShare} disabled={sharing}>
+              {copied ? (
+                <>
+                  <Check className="h-3.5 w-3.5 text-green-500" /> Copied!
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-3.5 w-3.5" /> Share
+                </>
+              )}
+            </Button>
+
+            {isAuthor && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => navigate(`/edit-post/${post.post_id}`)}>
+                  <Edit className="h-3.5 w-3.5" /> Edit
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => setIsDeleteModalOpen(true)}>
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -143,6 +264,51 @@ const PostDetail = () => {
         </p>
       </div>
 
+      {/* Post Links (useful URLs) */}
+      {post.post_links && post.post_links.length > 0 && (
+        <div className="bg-white rounded-3xl shadow-card p-8 mb-6">
+          <h2 className="font-display text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+            <Link2 className="h-5 w-5 text-teal-500" />
+            Useful Links
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {post.post_links.map((link: PostLink) => {
+              const cfg = LINK_CONFIG[link.linkType] || LINK_CONFIG.other;
+              const Icon = cfg.icon;
+              return (
+                <div
+                  key={link.id}
+                  className={`flex items-center justify-between gap-3 p-3.5 rounded-xl border text-sm font-medium ${cfg.colorClass}`}
+                >
+                  <a
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-1 items-center gap-3 hover:opacity-80 transition-opacity min-w-0"
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 truncate">{link.title}</span>
+                    <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                  </a>
+                  <button
+                    onClick={(e) => handleShareUsefulLink(e, link.id, link.url, link.linkType)}
+                    disabled={sharingLinkId === link.id}
+                    className="p-1.5 rounded-lg hover:bg-black/5 text-slate-600 hover:text-teal-700 transition-colors shrink-0 flex items-center justify-center"
+                    title={`Copy short link for ${link.title}`}
+                  >
+                    {copiedLinkId === link.id ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Share2 className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Interactions */}
       <div className="bg-white rounded-3xl shadow-card p-8">
         <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
@@ -152,7 +318,9 @@ const PostDetail = () => {
             initialDislikes={post.dislike_count}
           />
           <span className="text-xs text-slate-400">
-            Visited {format(new Date(post.date_of_visit), 'MMMM yyyy')}
+            Visited {post.date_of_visit && !isNaN(Date.parse(post.date_of_visit))
+              ? format(new Date(post.date_of_visit), 'MMMM yyyy')
+              : 'N/A'}
           </span>
         </div>
         <CommentSection postId={post.post_id.toString()} comments={post.comments} />
